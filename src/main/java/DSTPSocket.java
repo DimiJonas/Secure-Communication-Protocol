@@ -3,12 +3,11 @@ import exception.InvalidConfigurationException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.crypto.dsig.spec.HMACParameterSpec;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
-import java.security.KeyPair;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -18,8 +17,8 @@ public class DSTPSocket extends DatagramSocket {
     private final SecretKey encryptionKey;
     private final SecretKey macKey;
 
-    public DSTPSocket(DSTPConfig config) throws IOException, GeneralSecurityException, InvalidConfigurationException {
-        super();
+    public DSTPSocket(DSTPConfig config, InetSocketAddress inetSocketAddress) throws IOException, GeneralSecurityException, InvalidConfigurationException {
+        super(inetSocketAddress);
         this.config = config;
         this.cryptoProvider = CryptoProviderFactory.createProvider(config);
 
