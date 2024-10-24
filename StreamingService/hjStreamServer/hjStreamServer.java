@@ -27,9 +27,9 @@ class hjStreamServer {
  		long time;
 		DataInputStream g = new DataInputStream( new FileInputStream(args[0]) );
 		byte[] buff = new byte[65000];
+		DatagramSocket s = new DatagramSocket();
 		InetSocketAddress addr =
 		    new InetSocketAddress(args[1],Integer.parseInt(args[2]));
-		Sender s = new Sender(addr);
 		DatagramPacket p=new DatagramPacket(buff,buff.length,addr);
 		long t0 = System.nanoTime(); // tempo de referencia
 		long q0 = 0;

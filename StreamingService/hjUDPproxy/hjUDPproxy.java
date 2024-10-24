@@ -1,62 +1,83 @@
+/* hjUDPproxy, for use in 2024
+ */
+
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.MulticastSocket;
 import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 class hjUDPproxy {
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.out.println("Use: hjUDPproxy <endpoint1> <endpoint2>");
-            System.out.println("<endpoint1>: endpoint for receiving stream");
-            System.out.println("<endpoint2>: endpoint of media player");
-
-            System.out.println("Ex: hjUDPproxy 224.2.2.2:9000  127.0.0.1:8888");
-            System.out.println("Ex: hjUDPproxy 127.0.0.1:10000 127.0.0.1:8888");
-            System.exit(0);
-        }
-
-        String remote = args[0]; // receive media stream from this remote endpoint
-        String destinations = args[1]; // resend media stream to this destination endpoint
+if (args.length != 2)
+        {
+        System.out.println("Use: hjUDPproxy <endpoint1> <endpoint2>");
+        System.out.println("<endpoint1>: endpoint for receiving stream");
+        System.out.println("<endpoint2>: endpoint of media player");
+	
+	System.out.println("Ex: hjUDPproxy 224.2.2.2:9000  127.0.0.1:8888");
+	System.out.println("Ex: hjUDPproxy 127.0.0.1:10000 127.0.0.1:8888");
+	System.exit(0);
+	}
+	
+	String remote=args[0]; // receive mediastream from this rmote endpoint
+	String destinations=args[1]; //resend mediastream to this destination endpoint	
+	    
 
         SocketAddress inSocketAddress = parseSocketAddress(remote);
-        Set<SocketAddress> outSocketAddressSet = Arrays.stream(destinations.split(","))
-                .map(s -> parseSocketAddress(s))
-                .collect(Collectors.toSet());
+        Set<SocketAddress> outSocketAddressSet = Arrays.stream(destinations.split(",")).map(s -> parseSocketAddress(s)).collect(Collectors.toSet());
 
-        // Instantiate the DSTP Receiver to handle the incoming data stream
-        Receiver receiver = new Receiver(inSocketAddress, "unicast");
+        // Manage this according to your required setup, namely
+	// if you want to use unicast or multicast channels
 
-        // Prepare the DSTP Senders for outgoing data to multiple destinations
-        Set<Sender> senders = outSocketAddressSet.stream()
-                .map(addr -> {
-                    try {
-                        return new Sender((InetSocketAddress) addr);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toSet());
+        // If listen a remote unicast server try the remote config
+        // uncomment the following line
+	
+	 DatagramSocket inSocket = new DatagramSocket(inSocketAddress); 
 
-        int countframes = 0;
+	// If listen a remote multicast server using IP Multicasting
+        // addressing (remember IP Multicast Range) and port 
+	// uncomment the following two lines
+
+	//	MulticastSocket ms = new MulticastSocket(9999);
+	//        ms.joinGroup(InetAddress.getByName("239.9.9.9"));
+
+	int countframes=0;
+        DatagramSocket outSocket = new DatagramSocket();
+        byte[] buffer = new byte[4 * 1024];
         while (true) {
-            // Receive packet using DSTP Receiver (decrypts the packet)
-            DatagramPacket inPacket = receiver.receive();
-            if (inPacket == null) continue;
 
-            // Debugging, optional
-            countframes++;
-            System.out.println("Frame received: " + countframes);
+            DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);
+	    // If listen a remote unicast server
+	    // uncomment the following line
 
-            // Send decrypted packet to all destination endpoints using DSTP Sender
-            for (Sender sender : senders) {
-                sender.send(inPacket);
+	    inSocket.receive(inPacket);  // if remote is unicast
+
+	    // If listen a remote multcast server
+	    // uncomment the following line
+
+            //ms.receive(inPacket);          // if remote is multicast
+
+	    // Just for debug... 
+            //countframes++;
+            //System.out.println(":"+countframes);           // debug	    
+            //System.out.print(":");           // debug
+            for (SocketAddress outSocketAddress : outSocketAddressSet) 
+		{
+                outSocket.send(new DatagramPacket(buffer, inPacket.getLength(), outSocketAddress));
             }
         }
     }
 
-    private static InetSocketAddress parseSocketAddress(String socketAddress) {
+    private static InetSocketAddress parseSocketAddress(String socketAddress) 
+    {
         String[] split = socketAddress.split(":");
         String host = split[0];
         int port = Integer.parseInt(split[1]);
