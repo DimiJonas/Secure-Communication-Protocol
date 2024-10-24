@@ -36,7 +36,7 @@ public class DSTPPacket {
         try {
             // Read encrypted data
             int encryptedLength = buffer.getInt();
-            if (encryptedLength < 0 || encryptedLength > length - 12) {
+            if (encryptedLength < 0 || encryptedLength > length - 8) {
                 throw new IOException("Invalid encrypted data length");
             }
             byte[] encryptedData = new byte[encryptedLength];
@@ -44,7 +44,7 @@ public class DSTPPacket {
 
             // Read MAC
             int macLength = buffer.getInt();
-            if (macLength < 0 || macLength > length - encryptedLength - 12) {
+            if (macLength < 0 || macLength > length - encryptedLength - 8) {
                 throw new IOException("Invalid MAC length");
             }
             byte[] mac = new byte[macLength];
