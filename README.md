@@ -2,7 +2,7 @@
 
 ## TODO:
 ### unassigned
-    * DSTPSocket accepts an address and port to connect to
+    * dstp.DSTPSocket accepts an address and port to connect to
 ### Jonas
     * unencrypted local socket
     * one more socket local socket

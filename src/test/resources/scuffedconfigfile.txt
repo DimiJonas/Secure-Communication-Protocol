@@ -1,0 +1,11 @@
+CONFIDENTIALITY  AES/CTR/NoPadding
+symmetric_KEY=abc
+SYMMETRICKEYSIZE : 256
+IV Size = 128
+why is this standing here even
+
+INTEGRITy some MAC
+H:
+IV: 4ed2aa9348b4997e3e414bdd22ef973e
+mAc: HMACSHA512
+mackey size: 99999

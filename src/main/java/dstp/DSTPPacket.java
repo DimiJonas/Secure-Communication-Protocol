@@ -1,20 +1,22 @@
+package dstp;
+
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 public class DSTPPacket {
     private final byte[] encryptedData;
-    private final byte[] mac;
+    private final byte[] integrityBytes;
 
     public DSTPPacket(byte[] encryptedData, byte[] mac) {
         this.encryptedData = encryptedData;
-        this.mac = mac;
+        this.integrityBytes = mac;
     }
 
     public byte[] serialize() {
         // Calculate total length needed
         int totalLength = 4 + encryptedData.length +  // Length + encrypted data
-                4 + mac.length;                        // Length + MAC
+                4 + integrityBytes.length;                        // Length + MAC
 
         ByteBuffer buffer = ByteBuffer.allocate(totalLength);
 
@@ -23,8 +25,8 @@ public class DSTPPacket {
         buffer.put(encryptedData);
 
         // Write MAC with length prefix
-        buffer.putInt(mac.length);
-        buffer.put(mac);
+        buffer.putInt(integrityBytes.length);
+        buffer.put(integrityBytes);
 
         return buffer.array();
     }
@@ -59,5 +61,5 @@ public class DSTPPacket {
 
     // Getters for the fields
     public byte[] getEncryptedData() { return encryptedData; }
-    public byte[] getMac() { return mac; }
+    public byte[] getIntegrityBytes() { return integrityBytes; }
 }

@@ -1,4 +1,4 @@
-/*
+package applications.StreamingService.hjStreamServer;/*
 * hjStreamServer.java 
 * Streaming server: emitter of video streams (movies)
 * Can send in unicast or multicast IP for client listeners
