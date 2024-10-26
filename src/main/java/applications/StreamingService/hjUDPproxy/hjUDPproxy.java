@@ -1,6 +1,8 @@
 package applications.StreamingService.hjUDPproxy;/* hjUDPproxy, for use in 2024
  */
 
+import dstp.DSTPSocket;
+
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.DatagramPacket;
@@ -40,7 +42,7 @@ if (args.length != 2)
         // If listen a remote unicast server try the remote config
         // uncomment the following line
 	
-	 DatagramSocket inSocket = new DatagramSocket(inSocketAddress); 
+	 DatagramSocket inSocket = new DSTPSocket(inSocketAddress, "src/main/resources/cryptoconfig.txt");
 
 	// If listen a remote multicast server using IP Multicasting
         // addressing (remember IP Multicast Range) and port 
@@ -50,7 +52,7 @@ if (args.length != 2)
 	//        ms.joinGroup(InetAddress.getByName("239.9.9.9"));
 
 	int countframes=0;
-        DatagramSocket outSocket = new DatagramSocket();
+        DatagramSocket outSocket = new DSTPSocket("src/main/resources/cryptoconfig.txt");
         byte[] buffer = new byte[4 * 1024];
         while (true) {
 

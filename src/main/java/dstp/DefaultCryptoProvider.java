@@ -43,6 +43,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
         Cipher cipher = Cipher.getInstance(confidentialityAlgorithm);
         SecretKey secretKey = new SecretKeySpec(key, getBaseAlgorithm(confidentialityAlgorithm));
 
+        int ivSize = config.getIv_size();
         byte[] iv = hexToBytes(config.getIv());
 
         if (confidentialityAlgorithm.contains("GCM")) {
@@ -64,9 +65,9 @@ public class DefaultCryptoProvider implements CryptoProvider {
 
         // Combine IV and encrypted data except for ECB
         if (!confidentialityAlgorithm.contains("ECB")) {
-            byte[] result = new byte[iv.length + encrypted.length];
-            System.arraycopy(iv, 0, result, 0, iv.length);
-            System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+            byte[] result = new byte[ivSize+ encrypted.length];
+            System.arraycopy(iv, 0, result, 0, ivSize);
+            System.arraycopy(encrypted, 0, result, ivSize, encrypted.length);
             return result;
         }
 

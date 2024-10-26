@@ -12,42 +12,37 @@ import static dstp.util.Utils.hexToBytes;
 
 
 public class DSTPSocket extends MulticastSocket {
-    private static final String cryptoconfig = "cryptoconfig.txt";
     private final CryptoProvider cryptoProvider;
     private final DSTPConfig config;
-//    private final SecretKey encryptionKey;
-//    private final SecretKey macKey;
 
-    public DSTPSocket() throws IOException {
+    public DSTPSocket(final String configpath) throws IOException {
         super();
-        this.config = new DSTPConfig(cryptoconfig);
+        this.config = new DSTPConfig(configpath);
         this.cryptoProvider = CryptoProviderFactory.createProvider(config);
-
-//        this.encryptionKey = new SecretKeySpec(config.getSymmetric_key().getBytes(), config.getConfidentiality().getAlgorithm());
-//        this.macKey = new SecretKeySpec(Base64.getDecoder().decode(config.getMackey()), config.getMac().getAlgorithm());
     }
 
-    public DSTPSocket(InetSocketAddress inetSocketAddress) throws IOException {
+    public DSTPSocket(final InetSocketAddress inetSocketAddress, final String configpath) throws IOException {
         super(inetSocketAddress);
-        this.config = new DSTPConfig(cryptoconfig);
+        this.config = new DSTPConfig(configpath);
         this.cryptoProvider = CryptoProviderFactory.createProvider(config);
     }
 
-    public DSTPSocket(int port) throws IOException {
+    public DSTPSocket(int port, final String configpath) throws IOException {
         super(port);
-        this.config = new DSTPConfig(cryptoconfig);
+        this.config = new DSTPConfig(configpath);
         this.cryptoProvider = CryptoProviderFactory.createProvider(config);
     }
 
-    public DSTPSocket(SocketAddress bindaddr) throws IOException {
+    public DSTPSocket(SocketAddress bindaddr, final String configpath) throws IOException {
         super(bindaddr);
-        this.config = new DSTPConfig(cryptoconfig);
+        this.config = new DSTPConfig(configpath);
         this.cryptoProvider = CryptoProviderFactory.createProvider(config);
     }
 
     @Override
     public void send(DatagramPacket packet) throws IOException {
         try {
+            System.out.printf("sending udp packet socket:%s address:%s port:%s%n", packet.getSocketAddress(), packet.getAddress(), packet.getPort());
             // Extract the original data
             byte[] originalData = Arrays.copyOfRange(packet.getData(),
                     packet.getOffset(), packet.getLength());
@@ -76,6 +71,7 @@ public class DSTPSocket extends MulticastSocket {
     public void receive(DatagramPacket packet) throws IOException {
         // Receive the raw packet
         super.receive(packet);
+        System.out.printf("receiving dstp packet socket:%s address:%s port:%s%n", packet.getSocketAddress(), packet.getAddress(), packet.getPort());
 
         try {
             // Parse the secure packet

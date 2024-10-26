@@ -5,6 +5,8 @@ package applications.StreamingService.hjStreamServer;/*
 * that can play in real time the transmitted movies
 */
 
+import dstp.DSTPSocket;
+
 import java.io.*;
 import java.net.*;
 
@@ -27,7 +29,7 @@ class hjStreamServer {
  		long time;
 		DataInputStream g = new DataInputStream( new FileInputStream(args[0]) );
 		byte[] buff = new byte[65000];
-		DatagramSocket s = new DatagramSocket();
+		DatagramSocket s = new DSTPSocket("src/main/resources/cryptoconfig.txt");
 		InetSocketAddress addr =
 		    new InetSocketAddress(args[1],Integer.parseInt(args[2]));
 		DatagramPacket p=new DatagramPacket(buff,buff.length,addr);
