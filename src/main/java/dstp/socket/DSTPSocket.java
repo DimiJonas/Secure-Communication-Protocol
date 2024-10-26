@@ -43,7 +43,6 @@ public class DSTPSocket extends MulticastSocket {
     @Override
     public void send(DatagramPacket packet) throws IOException {
         try {
-            System.out.printf("sending udp packet socket:%s address:%s port:%s%n", packet.getSocketAddress(), packet.getAddress(), packet.getPort());
             // Extract the original data
             byte[] originalData = Arrays.copyOfRange(packet.getData(),
                     packet.getOffset(), packet.getLength());
@@ -72,7 +71,6 @@ public class DSTPSocket extends MulticastSocket {
     public void receive(DatagramPacket packet) throws IOException {
         // Receive the raw packet
         super.receive(packet);
-        System.out.printf("receiving dstp packet socket:%s address:%s port:%s%n", packet.getSocketAddress(), packet.getAddress(), packet.getPort());
 
         try {
             // Parse the secure packet

@@ -30,6 +30,7 @@ class hjStreamServer {
 		DataInputStream g = new DataInputStream( new FileInputStream(args[0]) );
 		byte[] buff = new byte[65000];
 		DatagramSocket s = new DSTPSocket("src/main/resources/cryptoconfig.txt");
+//		DatagramSocket s = new DatagramSocket();
 		InetSocketAddress addr =
 		    new InetSocketAddress(args[1],Integer.parseInt(args[2]));
 		DatagramPacket p=new DatagramPacket(buff,buff.length,addr);

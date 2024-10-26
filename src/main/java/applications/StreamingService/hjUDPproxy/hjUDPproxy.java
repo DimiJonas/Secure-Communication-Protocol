@@ -42,6 +42,7 @@ class hjUDPproxy {
         // uncomment the following line
 
         DatagramSocket inSocket = new DSTPSocket(inSocketAddress, "src/main/resources/cryptoconfig.txt");
+//        DatagramSocket inSocket = new DatagramSocket(inSocketAddress);
 
         // If listen a remote multicast server using IP Multicasting
         // addressing (remember IP Multicast Range) and port 
@@ -51,7 +52,7 @@ class hjUDPproxy {
         //        ms.joinGroup(InetAddress.getByName("239.9.9.9"));
 
         int countframes = 0;
-        DatagramSocket outSocket = new DSTPSocket("src/main/resources/cryptoconfig.txt");
+        DatagramSocket outSocket = new DatagramSocket();
         byte[] buffer = new byte[4 * 1024];
         while (true) {
 

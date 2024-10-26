@@ -1,8 +1,7 @@
-package dstp;
+package dstp.socket;
 
 import dstp.config.DSTPConfig;
 import dstp.config.TestConfigBuilder;
-import dstp.socket.DSTPSocket;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -16,16 +15,11 @@ public class DSTPSocketTest {
 
     @Test
     public void testSendReceive() throws NoSuchAlgorithmException, IOException {
-        DSTPConfig config = new TestConfigBuilder()
-                .generateSymmetricKey("AES/CTR/NoPadding", 128)
-                .generateIv(16)
-                .setIntegrity("hash")
-                .setH("SHA-256")
-                .build();
+        String configPath = "src/test/resources/dstp_socket_test_config.txt";
         InetSocketAddress socketAddress = new InetSocketAddress("127.0.0.1", 11111);
 
-        DSTPSocket sendingSocket = new DSTPSocket("src/test/resources/dstp_socket_test_config.txt");
-        DSTPSocket receivingSocket = new DSTPSocket(socketAddress, "src/test/resources/dstp_socket_test_config.txt");
+        DSTPSocket sendingSocket = new DSTPSocket(configPath);
+        DSTPSocket receivingSocket = new DSTPSocket(socketAddress, configPath);
 
         String message = "Hello, World!";
         byte[] messageBytes = message.getBytes();
