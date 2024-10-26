@@ -3,6 +3,7 @@ package dstp.socket;
 import dstp.config.DSTPConfig;
 import dstp.crypto.CryptoProvider;
 import dstp.crypto.CryptoProviderFactory;
+import dstp.util.Utils;
 
 import java.io.IOException;
 import java.net.*;
@@ -54,7 +55,6 @@ public class DSTPSocket extends MulticastSocket {
             // Create secured packet
             DSTPPacket securePacket = new DSTPPacket(encryptedData, integrityBytes);
             byte[] serializedPacket = securePacket.serialize();
-
             // Send the secured packet
             DatagramPacket securedDatagram = new DatagramPacket(
                     serializedPacket, serializedPacket.length,
@@ -90,9 +90,9 @@ public class DSTPSocket extends MulticastSocket {
             );
 
             // Update the packet with decrypted data
-            packet.setData(decryptedData);
+            packet.setData(decryptedData, 0, decryptedData.length);  // Specify offset and length
 
-        } catch (GeneralSecurityException e) {
+            } catch (GeneralSecurityException e) {
             throw new IOException("Security operation failed", e);
         }
     }

@@ -61,6 +61,8 @@ class hjUDPproxy {
             // uncomment the following line
 
             inSocket.receive(inPacket);  // if remote is unicast
+            // use a seperate buffer for sending
+            byte[] outData = Arrays.copyOfRange(inPacket.getData(), inPacket.getOffset(), inPacket.getOffset() + inPacket.getLength());
 
             // If listen a remote multcast server
             // uncomment the following line
@@ -72,7 +74,7 @@ class hjUDPproxy {
             //System.out.println(":"+countframes);           // debug	    
             //System.out.print(":");           // debug
             for (SocketAddress outSocketAddress : outSocketAddressSet) {
-                outSocket.send(new DatagramPacket(buffer, inPacket.getLength(), outSocketAddress));
+                outSocket.send(new DatagramPacket(outData, outData.length, outSocketAddress));
             }
         }
     }
