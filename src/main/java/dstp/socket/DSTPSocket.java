@@ -1,7 +1,8 @@
-package dstp;
+package dstp.socket;
 
 import dstp.config.DSTPConfig;
-import dstp.util.Utils;
+import dstp.crypto.CryptoProvider;
+import dstp.crypto.CryptoProviderFactory;
 
 import java.io.IOException;
 import java.net.*;

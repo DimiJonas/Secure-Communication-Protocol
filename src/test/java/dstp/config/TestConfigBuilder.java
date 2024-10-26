@@ -9,6 +9,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+import static dstp.util.Utils.getBaseAlgorithm;
+
 // Builder class for DSTPConfig
 public class TestConfigBuilder {
     private String algorithm;
@@ -86,7 +88,7 @@ public class TestConfigBuilder {
      * @throws NoSuchAlgorithmException
      */
     public TestConfigBuilder generateSymmetricKey(final String algorithm, final int keysize) throws NoSuchAlgorithmException {
-        String key = generateKey(algorithm, keysize);
+        String key = generateKey(getBaseAlgorithm(algorithm), keysize);
         setAlgorithm(algorithm);
         setSymmetricKey(key);
         setSymmetricKeySize(String.valueOf(keysize));
@@ -107,7 +109,7 @@ public class TestConfigBuilder {
         SecureRandom secureRandom = new SecureRandom();
         keyGen.init(keysize, secureRandom);
         SecretKey key = keyGen.generateKey();
-        return Base64.getEncoder().encodeToString(key.getEncoded());
+        return Utils.bytesToHex(key.getEncoded());
     }
 
     public TestConfigBuilder generateIv(final int ivsize) {
@@ -125,18 +127,18 @@ public class TestConfigBuilder {
     }
 
     public DSTPConfig build() {
-        DSTPConfig testConfig = new DSTPConfig();
-        testConfig.setConfidentiality(algorithm);
-        testConfig.setSymmetric_key(symmetric_key);
-        testConfig.setSymmetric_key_size(symmetric_key_size);
-        testConfig.setIv(iv);
-        testConfig.setIv_size(iv_size);
-        testConfig.setIntegrity(integrity);
-        testConfig.setH(h);
-        testConfig.setMac(macAlgorithm);
-        testConfig.setMackey(mackey);
-        testConfig.setMackey_size(mackey_size);
-        return new DSTPConfig();
+        DSTPConfig config = new DSTPConfig();
+        config.setConfidentiality(algorithm);
+        config.setSymmetric_key(symmetric_key);
+        config.setSymmetric_key_size(symmetric_key_size);
+        config.setIv(iv);
+        config.setIv_size(iv_size);
+        config.setIntegrity(integrity);
+        config.setH(h);
+        config.setMac(macAlgorithm);
+        config.setMackey(mackey);
+        config.setMackey_size(mackey_size);
+        return config;
 
     }
 }

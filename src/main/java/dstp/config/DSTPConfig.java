@@ -127,7 +127,7 @@ public class DSTPConfig {
     }
 
     public void setConfidentiality(String confidentiality) {
-        if (!confidentiality.isBlank() && !confidentiality.equalsIgnoreCase("null")) {
+        if (confidentiality != null && !confidentiality.isBlank() && !confidentiality.equalsIgnoreCase("null")) {
             this.confidentiality = confidentiality;
         }
     }
@@ -137,7 +137,7 @@ public class DSTPConfig {
     }
 
     public void setSymmetric_key(String symmetric_key) {
-        if (!symmetric_key.isBlank() && !symmetric_key.equalsIgnoreCase("null")) {
+        if (symmetric_key != null && !symmetric_key.isBlank() && !symmetric_key.equalsIgnoreCase("null")) {
             this.symmetric_key = symmetric_key;
         }
     }
@@ -147,7 +147,7 @@ public class DSTPConfig {
     }
 
     public void setSymmetric_key_size(String symmetric_key_size) {
-        if (!symmetric_key_size.isBlank() && !symmetric_key_size.equalsIgnoreCase("null")) {
+        if (symmetric_key_size != null && !symmetric_key_size.isBlank() && !symmetric_key_size.equalsIgnoreCase("null")) {
             this.symmetric_key_size = Integer.parseInt(symmetric_key_size);
         }
     }
@@ -157,7 +157,7 @@ public class DSTPConfig {
     }
 
     public void setIv_size(String iv_size) {
-        if (!iv_size.isBlank() && !iv_size.equalsIgnoreCase("null")) {
+        if (iv_size != null && !iv_size.isBlank() && !iv_size.equalsIgnoreCase("null")) {
             this.iv_size = Integer.parseInt(iv_size);
         }
     }
@@ -167,7 +167,7 @@ public class DSTPConfig {
     }
 
     public void setIv(String iv) {
-        if (!iv.isBlank() && !iv.equalsIgnoreCase("null")) {
+        if (iv != null && !iv.isBlank() && !iv.equalsIgnoreCase("null")) {
             this.iv = iv;
         }
     }
@@ -177,7 +177,7 @@ public class DSTPConfig {
     }
 
     public void setIntegrity(String integrity) {
-        if (integrity.isBlank()) {
+        if (integrity == null || integrity.isBlank()) {
             this.integrity = NONE;
         } else {
             this.integrity = parseIntegrity(integrity);
@@ -189,7 +189,7 @@ public class DSTPConfig {
     }
 
     public void setH(String h) {
-        if (!h.isBlank() && !h.equalsIgnoreCase("null")) {
+        if (h != null && !h.isBlank() && !h.equalsIgnoreCase("null")) {
             this.h = h;
         }
     }
@@ -199,7 +199,7 @@ public class DSTPConfig {
     }
 
     public void setMac(String mac) {
-        if (!mac.isBlank() && !mac.equalsIgnoreCase("null")) {
+        if (mac != null && !mac.isBlank() && !mac.equalsIgnoreCase("null")) {
             this.mac = mac;
         }
     }
@@ -209,7 +209,7 @@ public class DSTPConfig {
     }
 
     public void setMackey(String mackey) {
-        if (!mackey.isBlank() && !mackey.equalsIgnoreCase("null")) {
+        if (mackey != null && !mackey.isBlank() && !mackey.equalsIgnoreCase("null")) {
             this.mackey = mackey;
         }
     }
@@ -219,7 +219,7 @@ public class DSTPConfig {
     }
 
     public void setMackey_size(String mackey_size) {
-        if (!mackey_size.isBlank() && !mackey_size.equalsIgnoreCase("null")) {
+        if (mackey_size != null && !mackey_size.isBlank() && !mackey_size.equalsIgnoreCase("null")) {
             this.mackey_size = Integer.parseInt(mackey_size);
         }
     }

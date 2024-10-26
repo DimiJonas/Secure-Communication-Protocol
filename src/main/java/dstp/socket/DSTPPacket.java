@@ -1,4 +1,4 @@
-package dstp;
+package dstp.socket;
 
 import java.io.IOException;
 import java.nio.BufferUnderflowException;

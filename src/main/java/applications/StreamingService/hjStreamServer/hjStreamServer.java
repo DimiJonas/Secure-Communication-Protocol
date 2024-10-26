@@ -5,7 +5,7 @@ package applications.StreamingService.hjStreamServer;/*
 * that can play in real time the transmitted movies
 */
 
-import dstp.DSTPSocket;
+import dstp.socket.DSTPSocket;
 
 import java.io.*;
 import java.net.*;

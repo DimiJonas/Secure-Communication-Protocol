@@ -1,4 +1,4 @@
-package dstp;
+package dstp.crypto;
 
 import dstp.config.DSTPConfig;
 import dstp.config.DSTPConfig.Integrity;
@@ -16,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import static dstp.util.Utils.getBaseAlgorithm;
 import static dstp.util.Utils.hexToBytes;
 
 public class DefaultCryptoProvider implements CryptoProvider {
@@ -196,10 +197,5 @@ public class DefaultCryptoProvider implements CryptoProvider {
             throws GeneralSecurityException {
         byte[] computed = generateIntegrityCheck(data, key);
         return MessageDigest.isEqual(check, computed);
-    }
-
-    // Helper methods
-    private String getBaseAlgorithm(String fullAlgorithm) {
-        return fullAlgorithm.split("/")[0];
     }
 }

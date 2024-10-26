@@ -1,4 +1,4 @@
-package dstp;
+package dstp.crypto;
 
 import java.security.GeneralSecurityException;
 

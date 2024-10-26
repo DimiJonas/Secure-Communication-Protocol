@@ -27,4 +27,16 @@ public class Utils {
         }
         return bytes;
     }
+
+
+    /**
+     * Utility method to get the base algorithm
+     *
+     * e.g. get 'AES' from 'AES/CTR/NoPadding'
+     * @param fullAlgorithm
+     * @return
+     */
+    public static String getBaseAlgorithm(final String fullAlgorithm) {
+        return fullAlgorithm.split("/")[0];
+    }
 }
