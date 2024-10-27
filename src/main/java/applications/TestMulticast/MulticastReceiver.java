@@ -1,5 +1,7 @@
 package applications.TestMulticast;
 
+import dstp.socket.DSTPSocket;
+
 import java.net.*;
 import java.io.*;
 import java.util.*;
@@ -20,7 +22,8 @@ public class MulticastReceiver {
 	System.exit(0) ;
     }
 
-    MulticastSocket rs = new MulticastSocket(port) ;
+    MulticastSocket rs = new DSTPSocket(port, "src/main/resources/cryptoconfig.txt") ;
+//    MulticastSocket rs = new MulticastSocket(port) ;
 
     rs.joinGroup(group);
 

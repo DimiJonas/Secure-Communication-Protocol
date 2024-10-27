@@ -71,7 +71,6 @@ public class DSTPSocket extends MulticastSocket {
     public void receive(DatagramPacket packet) throws IOException {
         // Receive the raw packet
         super.receive(packet);
-
         try {
             // Parse the secure packet
             DSTPPacket securePacket = DSTPPacket.deserialize(
@@ -90,9 +89,9 @@ public class DSTPSocket extends MulticastSocket {
             );
 
             // Update the packet with decrypted data
-            packet.setData(decryptedData, 0, decryptedData.length);  // Specify offset and length
-
-            } catch (GeneralSecurityException e) {
+            System.arraycopy(decryptedData, 0, packet.getData(), 0, decryptedData.length);
+            packet.setLength(decryptedData.length);
+        } catch (GeneralSecurityException e) {
             throw new IOException("Security operation failed", e);
         }
     }

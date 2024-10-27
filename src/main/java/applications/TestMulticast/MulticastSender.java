@@ -1,5 +1,7 @@
 package applications.TestMulticast;
 
+import dstp.socket.DSTPSocket;
+
 import java.net.*;
 import java.io.*;
 import java.util.*;
@@ -23,7 +25,8 @@ public class MulticastSender {
 	System.exit(0) ;
     }
 
-    MulticastSocket ms = new MulticastSocket() ;
+    MulticastSocket ms = new DSTPSocket("src/main/resources/cryptoconfig.txt") ;
+//    MulticastSocket ms = new MulticastSocket() ;
     do {
         String msgsecret="topcsecret message, sent on: ";
         String msgdate = new Date().toString();

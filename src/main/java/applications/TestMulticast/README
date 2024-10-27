@@ -5,8 +5,9 @@ Correr simplesmente ...
 UDP/IPmulticast Multicast Sender:
 --------------------------------
 java -Djava.net.preferIPv4Stack=true MulticastSender <multicast-address> <port> <time-interval-seconds>
-
+java -Djava.net.preferIPv4Stack=true -cp target/classes applications.TestMulticast.MulticastSender 224.2.2.3 9000 2
 
 UDP/IPmulticast Multicast Receiver:
 -----------------------------------
 java -Djava.net.preferIPv4Stack=true MulticastReceiver <multicast-address> <port>
+java -Djava.net.preferIPv4Stack=true -cp target/classes applications.TestMulticast.MulticastReceiver 224.2.2.3 9000

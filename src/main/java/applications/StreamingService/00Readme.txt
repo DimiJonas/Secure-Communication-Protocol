@@ -30,6 +30,7 @@ Ex: for Unicast streaming:
 
 hjStreamSrver  <movie> <ip-unicast-address> <udp port>
 Ex: hjStreamSrver  <movie> 127.0.0.1 10000"
+java -cp target/classes applications.StreamingService.hjStreamServer.hjStreamServer src/main/java/applications/StreamingService/hjStreamServer/movies/monsters.dat localhost 10000
 
 hjUDPProxy arguments:
 ----------------------
@@ -48,7 +49,8 @@ Format for endpoints is: <ip address>:<udp port>
 
 Ex: 
 hjUDPproxy 224.2.2.2:9000  127.0.0.1:8888
-(for the proxy to receive  multicasted streams 
+(for the proxy to receive  multicasted streams
+ java -cp target/classes/ applications.StreamingService.hjUDPproxy.hjUDPproxy 127.0.0.1:10000 127.0.0.1:8888
 
 To play the movies you can obain from the StreamServer (directly) or
 through the proxy (indirectly).
