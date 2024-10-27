@@ -10,12 +10,14 @@ import java.net.*;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 
+import static dstp.util.Utils.bytesToHex;
 import static dstp.util.Utils.hexToBytes;
 
 
 public class DSTPSocket extends MulticastSocket {
     private final CryptoProvider cryptoProvider;
     private final DSTPConfig config;
+    private short sequenceNumber = 0;
 
     public DSTPSocket(final String configpath) throws IOException {
         super();
@@ -51,9 +53,9 @@ public class DSTPSocket extends MulticastSocket {
             // Apply security transforms
             byte[] encryptedData = cryptoProvider.encrypt(originalData, hexToBytes(config.getSymmetric_key()));
             byte[] integrityBytes = cryptoProvider.generateIntegrityCheck(encryptedData, hexToBytes(config.getMackey()));
-
             // Create secured packet
-            DSTPPacket securePacket = new DSTPPacket(encryptedData, integrityBytes);
+            DSTPPacket securePacket = new DSTPPacket(encryptedData, integrityBytes, sequenceNumber);
+            sequenceNumber++;
             byte[] serializedPacket = securePacket.serialize();
             // Send the secured packet
             DatagramPacket securedDatagram = new DatagramPacket(
@@ -76,7 +78,6 @@ public class DSTPSocket extends MulticastSocket {
             DSTPPacket securePacket = DSTPPacket.deserialize(
                     packet.getData(), packet.getOffset(), packet.getLength()
             );
-
             // Verify security properties
             if (!cryptoProvider.verifyIntegrityCheck(securePacket.getEncryptedData(),
                     securePacket.getIntegrityBytes(), hexToBytes(config.getMackey()))) {
@@ -87,7 +88,6 @@ public class DSTPSocket extends MulticastSocket {
             byte[] decryptedData = cryptoProvider.decrypt(
                     securePacket.getEncryptedData(), hexToBytes(config.getSymmetric_key())
             );
-
             // Update the packet with decrypted data
             System.arraycopy(decryptedData, 0, packet.getData(), 0, decryptedData.length);
             packet.setLength(decryptedData.length);

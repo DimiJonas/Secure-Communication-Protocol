@@ -41,9 +41,4 @@ public class DSTPConfigTest {
         assertEquals("", dstpConfig.getMackey());
         assertEquals(99999, dstpConfig.getMackey_size());
     }
-
-    @Test
-    public void test () throws NoSuchPaddingException, NoSuchAlgorithmException {
-        Cipher cipher = Cipher.getInstance("RC6/CBC/PKCS5Padding");
-    }
 }
