@@ -2,6 +2,11 @@ package dstp.config;
 
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+
+import java.security.NoSuchAlgorithmException;
+
 import static dstp.config.DSTPConfig.Integrity.MAC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -35,5 +40,10 @@ public class DSTPConfigTest {
         assertEquals("HMACSHA512", dstpConfig.getMac());
         assertEquals("", dstpConfig.getMackey());
         assertEquals(99999, dstpConfig.getMackey_size());
+    }
+
+    @Test
+    public void test () throws NoSuchPaddingException, NoSuchAlgorithmException {
+        Cipher cipher = Cipher.getInstance("RC6/CBC/PKCS5Padding");
     }
 }

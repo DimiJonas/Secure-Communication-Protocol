@@ -31,7 +31,7 @@ public class DSTPSocketTest {
         DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
 
         receivingSocket.receive(receivePacket);
-        
+
         byte[] trimmedReceivedBytes = new byte[message.getBytes().length];
         System.arraycopy(receivePacket.getData(), 0, trimmedReceivedBytes, 0, trimmedReceivedBytes.length);
         String receivedMessage = new String(trimmedReceivedBytes);
