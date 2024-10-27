@@ -31,7 +31,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
     @Override
     public byte[] encrypt(byte[] data, byte[] key) throws GeneralSecurityException {
         String confidentialityAlgorithm = config.getConfidentiality().toLowerCase();
-        switch (confidentialityAlgorithm) {
+        switch (confidentialityAlgorithm.split("/")[0]) {
             case "rc4" -> {
                 return encryptRC4(data, key);
             }
@@ -126,7 +126,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
     @Override
     public byte[] decrypt(byte[] data, byte[] key) throws GeneralSecurityException {
         String confidentialityAlgorithm = config.getConfidentiality().toLowerCase();
-        switch (confidentialityAlgorithm) {
+        switch (confidentialityAlgorithm.split("/")[0]) {
             case "rc4" -> {
                 return decryptRC4(data, key);
             }

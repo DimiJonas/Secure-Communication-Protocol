@@ -27,12 +27,14 @@ public class DSTPSocketTest {
 
         sendingSocket.send(sendPacket);
 
-        byte[] buffer = new byte[4 * 1024];
-        DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
+        byte[] receiveBuffer = new byte[4 * 1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
 
         receivingSocket.receive(receivePacket);
-        byte[] receivedBytes = receivePacket.getData();
-        String receivedMessage = new String(receivedBytes);
+        
+        byte[] trimmedReceivedBytes = new byte[message.getBytes().length];
+        System.arraycopy(receivePacket.getData(), 0, trimmedReceivedBytes, 0, trimmedReceivedBytes.length);
+        String receivedMessage = new String(trimmedReceivedBytes);
 
         assertEquals(message, receivedMessage);
     }
