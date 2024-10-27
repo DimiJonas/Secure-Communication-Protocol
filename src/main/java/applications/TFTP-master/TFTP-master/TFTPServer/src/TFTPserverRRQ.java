@@ -1,3 +1,5 @@
+import dstp.socket.DSTPSocket;
+
 import java.net.*;
 import java.security.MessageDigest;
 import java.io.*;
@@ -19,7 +21,8 @@ class TFTPserverRRQ extends Thread {
 		try {
 			req = request;
 			//open new socket with random port num for tranfer
-			sock = new DatagramSocket();
+			sock = new DSTPSocket("../../../../../../resources/cryptoconfig.txt");
+//			sock = new DatagramSocket();
 			sock.setSoTimeout(1000);
 			fileName = request.fileName();
 

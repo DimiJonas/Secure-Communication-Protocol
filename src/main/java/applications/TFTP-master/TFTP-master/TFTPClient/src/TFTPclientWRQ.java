@@ -1,5 +1,7 @@
 
 
+import dstp.socket.DSTPSocket;
+
 import java.net.*;
 import java.io.*;
 import java.util.*;
@@ -15,7 +17,8 @@ class TFTPclientWRQ {
 		dataMode = mode;
 		try {
 			// Create socket and open output file
-			DatagramSocket sock = new DatagramSocket();
+			DatagramSocket sock = new DSTPSocket("../../../../../../resources/cryptoconfig.txt");
+//			DatagramSocket sock = new DatagramSocket();
 			sock.setSoTimeout(2000);
 			int timeoutLimit = 5;
 

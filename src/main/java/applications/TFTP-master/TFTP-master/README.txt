@@ -35,7 +35,9 @@ Download(read) file using ascii mode:
 
 Upload(write) file using octet mode:
    java TFTPClient 127.0.0.1 W client1.jpg
-   
+   or
+   java -cp .:../../../../../../../../target/PA1-1.0-SNAPSHOT.jar TFTPClient 127.0.0.1 W client1.jpg
+
 Upload(write) file using octet mode
    java TFTPClient 127.0.0.1 W client2.pdf
 
@@ -66,6 +68,7 @@ NOTE:
 1. Open terminal (or CMD), change path to the Server’s src folder. e.g.“cd (path)/TFTP/TFTPServer/src”.
 2. Compile all the .java files using “javac *.java”. 
 3. Run the server using “java TFTP TFTPServer”， then server will start and listen to port 6969.
+    or "java -cp .:../../../../../../../../target/PA1-1.0-SNAPSHOT.jar TFTPServer" to include the jar built with "mvn clean install"
 4. Files are stored at default folder which is (path)/TFTP/TFTPServer. 
 
 If upload or download successfully, the terminal will print the something like following:
