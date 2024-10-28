@@ -228,4 +228,21 @@ public class DefaultCryptoProviderTest {
 
         assertTrue(cryptoProvider.verifyIntegrityCheck(one_mb_file, hashBytes, hexToBytes(config.getMackey())));
     }
+
+    @Test
+    void testChaCha20_poly1305() throws IOException, GeneralSecurityException {
+        byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
+        System.out.println("original bytes length: " + one_mb_file.length);
+        DSTPConfig config = new TestConfigBuilder()
+                .generateSymmetricKey("ChaCha20", 256)
+                .setAlgorithm("ChaCha20-Poly1305")
+                .generateIv(16)
+                .build();
+        CryptoProvider cryptoProvider = CryptoProviderFactory.createProvider(config);
+        byte[] encryptedBytes = cryptoProvider.encrypt(one_mb_file, hexToBytes(config.getSymmetric_key()));
+        System.out.println("encrypted bytes length: " + encryptedBytes.length);
+        byte[] decryptedBytes = cryptoProvider.decrypt(encryptedBytes, hexToBytes(config.getSymmetric_key()));
+        System.out.println("decrypted bytes length: " + decryptedBytes.length);
+        assertArrayEquals(one_mb_file, decryptedBytes);
+    }
 }

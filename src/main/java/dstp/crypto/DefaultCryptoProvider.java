@@ -86,7 +86,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
 
     private byte[] encryptChaCha20Poly1305(byte[] data, byte[] key) throws GeneralSecurityException {
         byte[] nonce = getNonce();
-        IvParameterSpec parameterSpec = new IvParameterSpec(getNonce());
+        IvParameterSpec parameterSpec = new IvParameterSpec(nonce);
         return doChaCha20Encryption("ChaCha20-Poly1305", key, nonce, parameterSpec, data, aadString);
     }
 
@@ -102,7 +102,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
 
     private byte[] doChaCha20Encryption(String cipherString, byte[] key, byte[] nonce, AlgorithmParameterSpec parameterSpec, byte[] data, String aad) throws GeneralSecurityException {
         Cipher cipher = Cipher.getInstance(cipherString);
-        SecretKey secretKey = new SecretKeySpec(key, cipherString);
+        SecretKey secretKey = new SecretKeySpec(key, "ChaCha20");
 
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
         if (aad != null) {
@@ -183,7 +183,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
     }
     private byte[] doChaCha20Decryption(byte[] data, byte[] key, String cipherString, String aad) throws GeneralSecurityException {
         Cipher cipher = Cipher.getInstance(cipherString);
-        SecretKey secretKey = new SecretKeySpec(key, cipherString);
+        SecretKey secretKey = new SecretKeySpec(key, "ChaCha20");
 
         byte[] nonce = Arrays.copyOfRange(data, 0, 12);
         byte[] encrypted = Arrays.copyOfRange(data, 12, data.length);
