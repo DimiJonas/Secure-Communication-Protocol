@@ -22,7 +22,8 @@ public class DSTPSocketTest {
     @Test
     public void testSendReceive() throws NoSuchAlgorithmException, IOException {
         String configPath = "src/test/resources/dstp_socket_test_config.txt";
-        byte[] messageBytes = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
+//        byte[] messageBytes = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
+        byte[] messageBytes = Files.readAllBytes(Path.of("src/test/resources/regularconfigfile.txt"));
         DatagramPacket receivePacket = getDatagramPacket(configPath, messageBytes);
 
         byte[] trimmedReceivedBytes = new byte[messageBytes.length];

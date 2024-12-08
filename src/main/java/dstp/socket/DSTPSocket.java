@@ -22,6 +22,8 @@ public class DSTPSocket extends MulticastSocket {
     private final DSTPConfig config;
     private short sequenceNumber = 0;
 
+    private Map<Short, List<DSTPPacket>> fragmentBuffer = new HashMap<>();
+
     public DSTPSocket(final String configpath) throws IOException {
         super();
         this.config = new DSTPConfig(configpath);
@@ -118,93 +120,52 @@ public class DSTPSocket extends MulticastSocket {
     public void receive(DatagramPacket packet) throws IOException {
         // Receive the raw packet
         super.receive(packet);
+        System.out.println("Received packet length: " + packet.getLength());
+        System.out.println("Received packet data (hex): " + bytesToHex(packet.getData()));
         try {
-            // Parse the secure packet
-            DSTPPacket securePacket = DSTPPacket.deserialize(
-                    packet.getData(), packet.getOffset(), packet.getLength()
-            );
+            DSTPPacket securePacket;
+            try {
+                // Parse the secure packet
+                securePacket = DSTPPacket.deserialize(
+                        packet.getData(), packet.getOffset(), packet.getLength()
+                );
+            } catch (IllegalArgumentException e) {
+                // Log the error or handle incomplete/malformed packets
+                System.err.println("Received malformed packet: " + e.getMessage());
+                return; // Skip this packet
+            }
             // Verify security properties
             if (!cryptoProvider.verifyIntegrityCheck(securePacket.getEncryptedData(),
                     securePacket.getIntegrityBytes(), hexToBytes(config.getMackey()))) {
                 throw new SecurityException("Integrity verification failed");
             }
 
-            // Decrypt the data
-            byte[] decryptedData = cryptoProvider.decrypt(
-                    securePacket.getEncryptedData(), hexToBytes(config.getSymmetric_key())
-            );
-            // Update the packet with decrypted data
-            System.arraycopy(decryptedData, 0, packet.getData(), 0, decryptedData.length);
-            packet.setLength(decryptedData.length);
+            // Buffer fragments - unfragmented packets are also buffered to simplify the code
+            fragmentBuffer.computeIfAbsent(securePacket.getSequenceNumber(), k -> new ArrayList<>())
+                    .add(securePacket);
+
+            // Check if all fragments are received
+            List<DSTPPacket> fragments = fragmentBuffer.get(securePacket.getSequenceNumber());
+            if (fragments.size() == securePacket.getTotalFragments()) {
+                // Sort fragments
+                fragments.sort(Comparator.comparingInt(DSTPPacket::getFragmentIndex));
+
+                // Reassemble full packet
+                byte[] reassembledData = reassembleFragments(fragments);
+
+                // Decrypt reassembled data
+                byte[] decryptedData = cryptoProvider.decrypt(reassembledData, hexToBytes(config.getSymmetric_key())
+                );
+
+                // Update the packet with decrypted data
+                System.arraycopy(decryptedData, 0, packet.getData(), 0, decryptedData.length);
+                packet.setLength(decryptedData.length);
+
+                // Clear buffer
+                fragmentBuffer.remove(securePacket.getSequenceNumber());
+            }
         } catch (GeneralSecurityException e) {
             throw new IOException("Security operation failed", e);
-        }
-    }
-
-    /**
-     * implementation for receiving fragmented packets
-     */
-    private Map<Short, List<DSTPPacket>> fragmentBuffer = new HashMap<>();
-
-    public void receiveFragmented(DatagramPacket packet) throws IOException {
-        try {
-            // Receive the raw packet
-            super.receive(packet);
-
-            DSTPPacket securePacket = DSTPPacket.deserialize(
-                    packet.getData(), packet.getOffset(), packet.getLength()
-            );
-
-            // Handle fragmented packet
-            if (securePacket.getTotalFragments() > 1) {
-                // Store or process fragment
-                processFragment(securePacket);
-                return;
-            }
-
-            // If not fragmented, process normally
-//            processRegularPacket(securePacket);
-
-        } catch (Exception e) {
-            throw new IOException("Packet processing failed", e);
-        }
-    }
-
-    private void processFragment(DSTPPacket fragment) throws GeneralSecurityException, IOException {
-        // Ensure integrity
-        if (!cryptoProvider.verifyIntegrityCheck(
-                fragment.getEncryptedData(),
-                fragment.getIntegrityBytes(),
-                hexToBytes(config.getMackey())
-        )) {
-            throw new SecurityException("Integrity verification failed");
-        }
-
-        // Buffer fragments
-        fragmentBuffer.computeIfAbsent(fragment.getSequenceNumber(), k -> new ArrayList<>())
-                .add(fragment);
-
-        // Check if all fragments are received
-        List<DSTPPacket> fragments = fragmentBuffer.get(fragment.getSequenceNumber());
-        if (fragments.size() == fragment.getTotalFragments()) {
-            // Sort fragments
-            fragments.sort(Comparator.comparingInt(DSTPPacket::getFragmentIndex));
-
-            // Reassemble full packet
-            byte[] reassembledData = reassembleFragments(fragments);
-
-            // Decrypt reassembled data
-            byte[] decryptedData = cryptoProvider.decrypt(
-                    reassembledData,
-                    hexToBytes(config.getSymmetric_key())
-            );
-
-            // Update packet with decrypted data
-            System.arraycopy(decryptedData, 0, packet.getData(), 0, decryptedData.length);
-            packet.setLength(decryptedData.length);
-
-            // Clear buffer
-            fragmentBuffer.remove(fragment.getSequenceNumber());
         }
     }
 

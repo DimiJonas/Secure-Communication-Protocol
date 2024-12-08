@@ -56,12 +56,26 @@ public class DSTPPacket {
     public static DSTPPacket deserialize(byte[] data, int offset, int length) {
         ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
 
+        if (buffer.remaining() < VERSION_LENGTH + RELEASE_LENGTH + TOTAL_FRAGMENTS + FRAGMENT_INDEX + PAYLOAD_LENGTH_FIELD + SEQUENCE_NUM_LENGTH) {
+            throw new IllegalArgumentException("Insufficient data for packet deserialization");
+        }
+
         short version = buffer.getShort();
         byte release = buffer.get();
         short totalFragments = buffer.getShort();
         short fragmentIndex = buffer.getShort();
         int dataLength = buffer.getInt();
+
+        if (buffer.remaining() < SEQUENCE_NUM_LENGTH + dataLength) {
+            throw new IllegalArgumentException("Insufficient data for encrypted payload");
+        }
+
         short sequenceNumber = buffer.getShort();
+
+        if (dataLength < 0 || dataLength > buffer.remaining()) {
+            throw new IllegalArgumentException("Invalid data length: " + dataLength);
+        }
+
         byte[] encryptedData = new byte[dataLength];
         buffer.get(encryptedData);
         // Extract remaining bytes as integrity bytes
