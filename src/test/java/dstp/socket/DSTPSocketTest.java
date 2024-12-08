@@ -1,20 +1,17 @@
 package dstp.socket;
 
-import dstp.config.DSTPConfig;
-import dstp.config.TestConfigBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DSTPSocketTest {
 
     @Test
-    public void testSendReceive() throws NoSuchAlgorithmException, IOException {
+    public void testSendReceive() throws IOException {
         String configPath = "src/test/resources/dstp_socket_test_config.txt";
         InetSocketAddress socketAddress = new InetSocketAddress("127.0.0.1", 11111);
 

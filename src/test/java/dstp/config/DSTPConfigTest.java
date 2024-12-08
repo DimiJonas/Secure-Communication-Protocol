@@ -2,11 +2,6 @@ package dstp.config;
 
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-
-import java.security.NoSuchAlgorithmException;
-
 import static dstp.config.DSTPConfig.Integrity.MAC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

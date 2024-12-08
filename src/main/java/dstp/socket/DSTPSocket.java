@@ -3,14 +3,12 @@ package dstp.socket;
 import dstp.config.DSTPConfig;
 import dstp.crypto.CryptoProvider;
 import dstp.crypto.CryptoProviderFactory;
-import dstp.util.Utils;
 
 import java.io.IOException;
 import java.net.*;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 
-import static dstp.util.Utils.bytesToHex;
 import static dstp.util.Utils.hexToBytes;
 
 
@@ -18,6 +16,8 @@ public class DSTPSocket extends MulticastSocket {
     private final CryptoProvider cryptoProvider;
     private final DSTPConfig config;
     private short sequenceNumber = 0;
+
+    public static final int MAX_PACKET_SIZE = 60000;
 
     public DSTPSocket(final String configpath) throws IOException {
         super();
@@ -47,9 +47,11 @@ public class DSTPSocket extends MulticastSocket {
     public void send(DatagramPacket packet) throws IOException {
         try {
             // Extract the original data
-            byte[] originalData = Arrays.copyOfRange(packet.getData(),
-                    packet.getOffset(), packet.getLength());
-
+            byte[] originalData = Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getLength());
+            // reject packets that are too long
+            if (originalData.length > MAX_PACKET_SIZE) {
+                throw new SocketException("Packet too large. Max allowed size is " + MAX_PACKET_SIZE);
+            }
             // Apply security transforms
             byte[] encryptedData = cryptoProvider.encrypt(originalData, hexToBytes(config.getSymmetric_key()));
             byte[] integrityBytes = cryptoProvider.generateIntegrityCheck(encryptedData, hexToBytes(config.getMackey()));
@@ -75,9 +77,7 @@ public class DSTPSocket extends MulticastSocket {
         super.receive(packet);
         try {
             // Parse the secure packet
-            DSTPPacket securePacket = DSTPPacket.deserialize(
-                    packet.getData(), packet.getOffset(), packet.getLength()
-            );
+            DSTPPacket securePacket = DSTPPacket.deserialize(packet.getData(), packet.getOffset(), packet.getLength());
             // Verify security properties
             if (!cryptoProvider.verifyIntegrityCheck(securePacket.getEncryptedData(),
                     securePacket.getIntegrityBytes(), hexToBytes(config.getMackey()))) {
