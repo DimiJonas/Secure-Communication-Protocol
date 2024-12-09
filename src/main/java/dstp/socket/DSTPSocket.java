@@ -17,7 +17,8 @@ public class DSTPSocket extends MulticastSocket {
     private final DSTPConfig config;
     private short sequenceNumber = 0;
 
-    public static final int MAX_PACKET_SIZE = 60000;
+    public static final int MAX_DATA_SIZE = 60000;
+    private static final int MAX_PACKET_SIZE = 65536;
 
     public DSTPSocket(final String configpath) throws IOException {
         super();
@@ -49,12 +50,13 @@ public class DSTPSocket extends MulticastSocket {
             // Extract the original data
             byte[] originalData = Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getLength());
             // reject packets that are too long
-            if (originalData.length > MAX_PACKET_SIZE) {
-                throw new SocketException("Packet too large. Max allowed size is " + MAX_PACKET_SIZE);
+            if (originalData.length > MAX_DATA_SIZE) {
+                throw new SocketException("Packet too large. Max allowed size is " + MAX_DATA_SIZE);
             }
             // Apply security transforms
             byte[] encryptedData = cryptoProvider.encrypt(originalData, hexToBytes(config.getSymmetric_key()));
             byte[] integrityBytes = cryptoProvider.generateIntegrityCheck(encryptedData, hexToBytes(config.getMackey()));
+
             // Create secured packet
             DSTPPacket securePacket = new DSTPPacket(encryptedData, integrityBytes, sequenceNumber);
             sequenceNumber++;
@@ -65,7 +67,6 @@ public class DSTPSocket extends MulticastSocket {
                     packet.getAddress(), packet.getPort()
             );
             super.send(securedDatagram);
-
         } catch (GeneralSecurityException e) {
             throw new IOException("Security operation failed", e);
         }
@@ -73,7 +74,11 @@ public class DSTPSocket extends MulticastSocket {
 
     @Override
     public void receive(DatagramPacket packet) throws IOException {
-        // Receive the raw packet
+        // Creating a maximum sized buffer to receive all data
+        // Needed because the TFTP application does not consider that there is data (security overhead) added
+        // to the packet thus puts a buffer in the datagram that is too small
+        byte[] originalBuffer = packet.getData();
+        packet.setData(new byte[MAX_PACKET_SIZE]);
         super.receive(packet);
         try {
             // Parse the secure packet
@@ -85,12 +90,16 @@ public class DSTPSocket extends MulticastSocket {
             }
 
             // Decrypt the data
-            byte[] decryptedData = cryptoProvider.decrypt(
-                    securePacket.getEncryptedData(), hexToBytes(config.getSymmetric_key())
-            );
-            // Update the packet with decrypted data
-            System.arraycopy(decryptedData, 0, packet.getData(), 0, decryptedData.length);
+            byte[] decryptedData = cryptoProvider.decrypt(securePacket.getEncryptedData(), hexToBytes(config.getSymmetric_key()));
+            // Copy the decrypted data to the original packet
+            if(originalBuffer.length < decryptedData.length) {
+                throw new IOException("Supplied receive packet buffer too small for decrypted data. Required: "
+                        + decryptedData.length + " Supplied: " + originalBuffer.length);
+            }
+            System.arraycopy(decryptedData, 0, originalBuffer, 0, decryptedData.length);
+            packet.setData(originalBuffer);
             packet.setLength(decryptedData.length);
+
         } catch (GeneralSecurityException e) {
             throw new IOException("Security operation failed", e);
         }

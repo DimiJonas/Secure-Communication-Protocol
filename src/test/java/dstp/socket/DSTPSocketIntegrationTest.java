@@ -8,10 +8,11 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static dstp.socket.DSTPSocket.MAX_PACKET_SIZE;
+import static dstp.socket.DSTPSocket.MAX_DATA_SIZE;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DSTPSocketIntegrationTest {
@@ -79,15 +80,14 @@ public class DSTPSocketIntegrationTest {
 
             // send message in chunks of allowed size
             List<byte[]> dataChunks = new ArrayList<>();
-            for (int i = 0; i < messageBytes.length; i += MAX_PACKET_SIZE) {
-                int packetSize = Math.min(MAX_PACKET_SIZE, messageBytes.length - i);
+            for (int i = 0; i < messageBytes.length; i += MAX_DATA_SIZE) {
+                int packetSize = Math.min(MAX_DATA_SIZE, messageBytes.length - i);
                 byte[] packet = new byte[packetSize];
                 System.arraycopy(messageBytes, i, packet, 0, packetSize);
                 dataChunks.add(packet);
             }
 
             int currentPosition = 0;
-            List<byte[]> receivedChunks = new ArrayList<>();
             byte[] reassembledData = new byte[messageBytes.length];
             for (byte[] chunk : dataChunks) {
                 DatagramPacket sendPacket = new DatagramPacket(
@@ -99,7 +99,6 @@ public class DSTPSocketIntegrationTest {
                 byte[] receiveBuffer = new byte[64000];
                 DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
                 receiverSocket.receive(receivePacket);
-                receivedChunks.add(receivePacket.getData());
                 System.arraycopy(chunk, 0, reassembledData, currentPosition, chunk.length);
                 currentPosition += chunk.length;
             }

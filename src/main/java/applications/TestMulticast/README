@@ -2,6 +2,13 @@
 
 Correr simplesmente ...
 
+iptables rule for multicast
+--------------------------------
+allow multicast:
+        sudo iptables -A INPUT -m addrtype --dst-type MULTICAST -j ACCEPT
+delete multicast rule:
+        sudo iptables -D INPUT -m addrtype --dst-type MULTICAST -j ACCEPT
+
 UDP/IPmulticast Multicast Sender:
 --------------------------------
 java -Djava.net.preferIPv4Stack=true MulticastSender <multicast-address> <port> <time-interval-seconds>
