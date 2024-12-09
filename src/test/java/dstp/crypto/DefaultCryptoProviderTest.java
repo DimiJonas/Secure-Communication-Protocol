@@ -3,6 +3,7 @@ package dstp.crypto;
 import dstp.config.DSTPConfig;
 import dstp.config.TestConfigBuilder;
 import dstp.util.Utils;
+import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DefaultCryptoProviderTest {
 
     @Test
-    void testEncryption_AES_CTR() throws GeneralSecurityException {
+    void testEncryption_AES_CTR() throws GeneralSecurityException, InvalidCipherTextException {
         String testString = "Hello, World!";
         System.out.println("original String: " + testString);
         DSTPConfig config = new TestConfigBuilder()
@@ -41,7 +42,7 @@ public class DefaultCryptoProviderTest {
     }
 
     @Test
-    void testEncryption_AES_CTR_1mbfile() throws GeneralSecurityException, IOException {
+    void testEncryption_AES_CTR_1mbfile() throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         System.out.println("original bytes length: " + one_mb_file.length);
         DSTPConfig config = new TestConfigBuilder()
@@ -100,7 +101,7 @@ public class DefaultCryptoProviderTest {
 
     @ParameterizedTest
     @ValueSource(ints = {128, 192, 256})
-    void testAES_CTR_nopadding(int keysize) throws GeneralSecurityException, IOException {
+    void testAES_CTR_nopadding(int keysize) throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         DSTPConfig config = new TestConfigBuilder()
                 .generateSymmetricKey("AES/CTR/NoPadding", keysize)
@@ -116,7 +117,7 @@ public class DefaultCryptoProviderTest {
 
     @ParameterizedTest
     @ValueSource(ints = {128, 192, 256})
-    void testAES_GCM_nopadding(int keysize) throws GeneralSecurityException, IOException {
+    void testAES_GCM_nopadding(int keysize) throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         DSTPConfig config = new TestConfigBuilder()
                 .generateSymmetricKey("AES/GCM/NoPadding", keysize)
@@ -132,7 +133,7 @@ public class DefaultCryptoProviderTest {
 
     @ParameterizedTest
     @ValueSource(ints = {64, 112, 128, 168, 256, 448})
-    void testBLF_ECB_PKCS5(int keysize) throws GeneralSecurityException, IOException {
+    void testBLF_ECB_PKCS5(int keysize) throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         DSTPConfig config = new TestConfigBuilder()
                 .generateSymmetricKey("BLOWFISH/ECB/PKCS5Padding", keysize)
@@ -148,7 +149,7 @@ public class DefaultCryptoProviderTest {
 
     @ParameterizedTest
     @ValueSource(ints = {64, 112, 128, 168, 256, 448})
-    void testBLF_CBC_PKCS5(int keysize) throws GeneralSecurityException, IOException {
+    void testBLF_CBC_PKCS5(int keysize) throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         DSTPConfig config = new TestConfigBuilder()
                 .generateSymmetricKey("BLOWFISH/CBC/PKCS5Padding", keysize)
@@ -164,7 +165,7 @@ public class DefaultCryptoProviderTest {
 
     @ParameterizedTest
     @ValueSource(ints = {64, 112, 128, 168, 256, 448})
-    void testRC4(int keysize) throws GeneralSecurityException, IOException {
+    void testRC4(int keysize) throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         DSTPConfig config = new TestConfigBuilder()
                 .generateSymmetricKey("RC4", keysize)
@@ -180,7 +181,7 @@ public class DefaultCryptoProviderTest {
 
     @ParameterizedTest
     @ValueSource(ints = {112, 168})
-    void testRC6_OFB_Nopadding(int keysize) throws GeneralSecurityException, IOException {
+    void testDESede_CBC_PKCS5Padding(int keysize) throws GeneralSecurityException, IOException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         DSTPConfig config = new TestConfigBuilder()
                 .generateSymmetricKey("DESede/CBC/PKCS5Padding", keysize)
@@ -229,12 +230,13 @@ public class DefaultCryptoProviderTest {
         assertTrue(cryptoProvider.verifyIntegrityCheck(one_mb_file, hashBytes, hexToBytes(config.getMackey())));
     }
 
-    @Test
-    void testChaCha20_poly1305() throws IOException, GeneralSecurityException {
+    @ParameterizedTest
+    @ValueSource(ints = {256})
+    void testChaCha20_poly1305(int keysize) throws IOException, GeneralSecurityException, InvalidCipherTextException {
         byte[] one_mb_file = Files.readAllBytes(Path.of("src/test/resources/1mb_file.txt"));
         System.out.println("original bytes length: " + one_mb_file.length);
         DSTPConfig config = new TestConfigBuilder()
-                .generateSymmetricKey("ChaCha20", 256)
+                .generateSymmetricKey("ChaCha20", keysize)
                 .setAlgorithm("ChaCha20-Poly1305")
                 .generateIv(16)
                 .build();

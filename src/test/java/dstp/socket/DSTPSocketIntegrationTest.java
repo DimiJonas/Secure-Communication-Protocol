@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,7 +65,7 @@ public class DSTPSocketIntegrationTest {
     public void testSendBigFile() throws IOException {
         // Prepare test message
         String bigFilePath = "1mb_file.txt";
-        try (var fileIs = DSTPSocketIntegrationTest.class.getClassLoader().getResourceAsStream(bigFilePath)){
+        try (var fileIs = DSTPSocketIntegrationTest.class.getClassLoader().getResourceAsStream(bigFilePath)) {
             byte[] messageBytes = fileIs.readAllBytes();
 
             // Create datagram packet to send that should be too big

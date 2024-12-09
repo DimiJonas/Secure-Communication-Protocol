@@ -3,6 +3,7 @@ package dstp.socket;
 import dstp.config.DSTPConfig;
 import dstp.crypto.CryptoProvider;
 import dstp.crypto.CryptoProviderFactory;
+import org.bouncycastle.crypto.InvalidCipherTextException;
 
 import java.io.IOException;
 import java.net.*;
@@ -67,7 +68,7 @@ public class DSTPSocket extends MulticastSocket {
                     packet.getAddress(), packet.getPort()
             );
             super.send(securedDatagram);
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | InvalidCipherTextException e) {
             throw new IOException("Security operation failed", e);
         }
     }
@@ -100,7 +101,7 @@ public class DSTPSocket extends MulticastSocket {
             packet.setData(originalBuffer);
             packet.setLength(decryptedData.length);
 
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | InvalidCipherTextException e) {
             throw new IOException("Security operation failed", e);
         }
     }
