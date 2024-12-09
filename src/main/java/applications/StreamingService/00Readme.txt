@@ -30,8 +30,7 @@ Ex: for Unicast streaming:
 
 hjStreamSrver  <movie> <ip-unicast-address> <udp port>
 Ex: hjStreamSrver  <movie> 127.0.0.1 10000"
-java -cp target/classes applications.StreamingService.hjStreamServer.hjStreamServer src/main/java/applications/StreamingService/hjStreamServer/movies/monsters.dat localhost 10000
-
+java
 hjUDPProxy arguments:
 ----------------------
 

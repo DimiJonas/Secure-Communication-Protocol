@@ -22,7 +22,7 @@ class TFTPserverWRQ extends Thread {
 	public TFTPserverWRQ(TFTPwrite request) throws TftpException {
 		try {
 			req = request;
-			sock = new DSTPSocket("../../../../../../resources/cryptoconfig.txt"); // new port for transfer
+			sock = new DSTPSocket("../../../../../../resources/pa1/cryptoconfig.txt"); // new port for transfer
 //			sock = new DatagramSocket(); // new port for transfer
 			sock.setSoTimeout(1000);
 

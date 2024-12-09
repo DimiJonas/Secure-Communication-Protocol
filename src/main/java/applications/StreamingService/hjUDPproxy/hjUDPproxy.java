@@ -41,7 +41,7 @@ class hjUDPproxy {
         // If listen a remote unicast server try the remote config
         // uncomment the following line
 
-        DatagramSocket inSocket = new DSTPSocket(inSocketAddress, "src/main/resources/cryptoconfig.txt");
+        DatagramSocket inSocket = new DSTPSocket(inSocketAddress, "src/main/resources/pa1/cryptoconfig.txt");
 //        DatagramSocket inSocket = new DatagramSocket(inSocketAddress);
 
         // If listen a remote multicast server using IP Multicasting

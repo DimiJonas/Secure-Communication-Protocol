@@ -1,5 +1,7 @@
-package dstp.crypto;
+package crypto;
 
+import crypto.CryptoProvider;
+import crypto.CryptoProviderFactory;
 import dstp.config.DSTPConfig;
 import dstp.config.TestConfigBuilder;
 import org.bouncycastle.crypto.InvalidCipherTextException;
@@ -12,7 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 
-import static dstp.util.Utils.hexToBytes;
+import static util.Utils.hexToBytes;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

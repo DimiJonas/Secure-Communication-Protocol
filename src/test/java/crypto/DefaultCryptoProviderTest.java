@@ -1,22 +1,20 @@
-package dstp.crypto;
+package crypto;
 
+import crypto.CryptoProvider;
+import crypto.CryptoProviderFactory;
 import dstp.config.DSTPConfig;
 import dstp.config.TestConfigBuilder;
-import dstp.util.Utils;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.crypto.Mac;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.NoSuchAlgorithmException;
 
-import static dstp.util.Utils.hexToBytes;
+import static util.Utils.hexToBytes;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DefaultCryptoProviderTest {

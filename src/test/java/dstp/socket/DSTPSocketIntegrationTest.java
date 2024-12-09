@@ -15,7 +15,7 @@ import static dstp.socket.DSTPSocket.MAX_DATA_SIZE;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DSTPSocketIntegrationTest {
-    private static final String CONFIG_PATH = "src/main/resources/cryptoconfig.txt";
+    private static final String CONFIG_PATH = "src/main/resources/pa1/cryptoconfig.txt";
     private DSTPSocket senderSocket;
     private DSTPSocket receiverSocket;
     private InetSocketAddress socketAddress;
@@ -188,7 +188,7 @@ public class DSTPSocketIntegrationTest {
             plainReceiverSocket.receive(tamperPacket);
 
             // Manually modify encrypted data to simulate tampering
-            tamperBuffer[10] = (byte) (tamperBuffer[10] ^ 0xFF);
+            tamperBuffer[30] = (byte) (tamperBuffer[10] ^ 0xFF);
 
             // send the tampered packet to the DSTP receiver socket
             tamperPacket.setSocketAddress(socketAddress);

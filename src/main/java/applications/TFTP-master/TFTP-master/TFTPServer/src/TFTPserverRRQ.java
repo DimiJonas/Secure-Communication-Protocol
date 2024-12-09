@@ -21,7 +21,7 @@ class TFTPserverRRQ extends Thread {
 		try {
 			req = request;
 			//open new socket with random port num for tranfer
-			sock = new DSTPSocket("../../../../../../resources/cryptoconfig.txt");
+			sock = new DSTPSocket("../../../../../../resources/pa1/cryptoconfig.txt");
 //			sock = new DatagramSocket();
 			sock.setSoTimeout(1000);
 			fileName = request.fileName();

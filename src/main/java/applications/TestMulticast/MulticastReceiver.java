@@ -22,7 +22,7 @@ public class MulticastReceiver {
 	System.exit(0) ;
     }
 
-    MulticastSocket rs = new DSTPSocket(port, "src/main/resources/cryptoconfig.txt") ;
+    MulticastSocket rs = new DSTPSocket(port, "src/main/resources/pa1/cryptoconfig.txt") ;
 //    MulticastSocket rs = new MulticastSocket(port) ;
 
     rs.joinGroup(group);

@@ -1,4 +1,4 @@
-package dstp.crypto;
+package crypto;
 
 import dstp.config.DSTPConfig;
 import dstp.config.DSTPConfig.Integrity;
@@ -17,8 +17,8 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
-import static dstp.util.Utils.getBaseAlgorithm;
-import static dstp.util.Utils.hexToBytes;
+import static util.Utils.getBaseAlgorithm;
+import static util.Utils.hexToBytes;
 
 public class DefaultCryptoProvider implements CryptoProvider {
     private final DSTPConfig config;

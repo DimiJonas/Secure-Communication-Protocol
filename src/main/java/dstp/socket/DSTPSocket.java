@@ -1,8 +1,8 @@
 package dstp.socket;
 
 import dstp.config.DSTPConfig;
-import dstp.crypto.CryptoProvider;
-import dstp.crypto.CryptoProviderFactory;
+import crypto.CryptoProvider;
+import crypto.CryptoProviderFactory;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.net.*;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 
-import static dstp.util.Utils.hexToBytes;
+import static util.Utils.hexToBytes;
 
 
 public class DSTPSocket extends MulticastSocket {
@@ -24,25 +24,25 @@ public class DSTPSocket extends MulticastSocket {
     public DSTPSocket(final String configpath) throws IOException {
         super();
         this.config = new DSTPConfig(configpath);
-        this.cryptoProvider = CryptoProviderFactory.createProvider(config);
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
     }
 
     public DSTPSocket(final InetSocketAddress inetSocketAddress, final String configpath) throws IOException {
         super(inetSocketAddress);
         this.config = new DSTPConfig(configpath);
-        this.cryptoProvider = CryptoProviderFactory.createProvider(config);
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
     }
 
     public DSTPSocket(int port, final String configpath) throws IOException {
         super(port);
         this.config = new DSTPConfig(configpath);
-        this.cryptoProvider = CryptoProviderFactory.createProvider(config);
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
     }
 
     public DSTPSocket(SocketAddress bindaddr, final String configpath) throws IOException {
         super(bindaddr);
         this.config = new DSTPConfig(configpath);
-        this.cryptoProvider = CryptoProviderFactory.createProvider(config);
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
     }
 
     @Override

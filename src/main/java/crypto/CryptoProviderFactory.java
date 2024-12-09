@@ -1,4 +1,4 @@
-package dstp.crypto;
+package crypto;
 
 import dstp.config.DSTPConfig;
 

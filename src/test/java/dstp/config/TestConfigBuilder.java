@@ -1,6 +1,6 @@
 package dstp.config;
 
-import dstp.util.Utils;
+import util.Utils;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -8,7 +8,7 @@ import javax.crypto.spec.IvParameterSpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
-import static dstp.util.Utils.getBaseAlgorithm;
+import static util.Utils.getBaseAlgorithm;
 
 // Builder class for DSTPConfig
 public class TestConfigBuilder {

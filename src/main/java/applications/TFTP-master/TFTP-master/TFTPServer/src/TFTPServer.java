@@ -9,7 +9,7 @@ public class TFTPServer {
 	public static void main(String argv[]) {
 		try {
 			//use port 6973
-			DatagramSocket sock = new DSTPSocket(6973, "../../../../../../resources/cryptoconfig.txt");
+			DatagramSocket sock = new DSTPSocket(6973, "../../../../../../resources/pa1/cryptoconfig.txt");
 //			DatagramSocket sock = new DatagramSocket(6973);
 			System.out.println("Server Ready.  Port:  " + sock.getLocalPort());
 

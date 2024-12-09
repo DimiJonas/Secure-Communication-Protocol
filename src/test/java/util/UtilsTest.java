@@ -1,6 +1,7 @@
-package dstp.util;
+package util;
 
 import org.junit.jupiter.api.Test;
+import util.Utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

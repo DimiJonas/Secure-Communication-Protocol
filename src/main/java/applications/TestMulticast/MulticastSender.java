@@ -25,7 +25,7 @@ public class MulticastSender {
 	System.exit(0) ;
     }
 
-    MulticastSocket ms = new DSTPSocket("src/main/resources/cryptoconfig.txt") ;
+    MulticastSocket ms = new DSTPSocket("src/main/resources/pa1/cryptoconfig.txt") ;
 //    MulticastSocket ms = new MulticastSocket() ;
     do {
         String msgsecret="topcsecret message, sent on: ";

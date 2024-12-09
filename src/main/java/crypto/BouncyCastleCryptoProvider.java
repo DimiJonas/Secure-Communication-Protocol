@@ -1,17 +1,11 @@
-package dstp.crypto;
+package crypto;
 
 import dstp.config.DSTPConfig;
 import dstp.config.DSTPConfig.Integrity;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.ChaChaEngine;
 import org.bouncycastle.crypto.engines.RC4Engine;
-import org.bouncycastle.crypto.engines.RC6Engine;
-import org.bouncycastle.crypto.modes.AEADBlockCipher;
-import org.bouncycastle.crypto.modes.CBCBlockCipher;
 import org.bouncycastle.crypto.modes.ChaCha20Poly1305;
-import org.bouncycastle.crypto.modes.GCMBlockCipher;
-import org.bouncycastle.crypto.paddings.PKCS7Padding;
-import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -22,10 +16,12 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Arrays;
 
-import static dstp.util.Utils.getBaseAlgorithm;
-import static dstp.util.Utils.hexToBytes;
+import static util.SafeCurves.Curve25519;
+import static util.Utils.*;
+import static util.Utils.bytesToHex;
 
 public class BouncyCastleCryptoProvider implements CryptoProvider {
     private final DSTPConfig config;

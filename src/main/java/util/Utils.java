@@ -1,4 +1,4 @@
-package dstp.util;
+package util;
 
 public class Utils {
     /**

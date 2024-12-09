@@ -29,7 +29,7 @@ class hjStreamServer {
  		long time;
 		DataInputStream g = new DataInputStream( new FileInputStream(args[0]) );
 		byte[] buff = new byte[65000];
-		DatagramSocket s = new DSTPSocket("src/main/resources/cryptoconfig.txt");
+		DatagramSocket s = new DSTPSocket("src/main/resources/pa1/cryptoconfig.txt");
 //		DatagramSocket s = new DatagramSocket();
 		InetSocketAddress addr =
 		    new InetSocketAddress(args[1],Integer.parseInt(args[2]));
