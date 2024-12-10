@@ -123,7 +123,7 @@ public class SHPPacketFactory {
             payloadBuffer.putInt(mac.length);
             payloadBuffer.put(mac);
 
-            return new SHPPacket(data, FIVE);
+            return new SHPPacket(payloadBuffer.array(), FIVE);
         } catch (GeneralSecurityException | InvalidCipherTextException e) {
             throw new RuntimeException("Failed to to create SHP type 5 packet", e);
         }

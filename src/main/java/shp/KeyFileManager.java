@@ -14,6 +14,8 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static util.ByteUtils.hexToBytes;
+import static util.CryptoUtils.reconstructECCPrivateKeyFromBytes;
+import static util.CryptoUtils.reconstructECCPublicKeyFromBytes;
 
 public abstract class KeyFileManager {
     protected static Pattern keyFilePattern = Pattern.compile("Curve: (?<curve>[a-zA-Z0-9-]+)\\nPrivateKey: (?<privkey>[a-zA-Z0-9]+)\\nPublicKey: (?<pubkey>a-zA-Z0-9]+)");
@@ -42,11 +44,9 @@ public abstract class KeyFileManager {
         curve = matcher.group("curve");
         byte[] privkeyBytes = hexToBytes(matcher.group("privkey"));
         byte[] pubkeyBytes = hexToBytes(matcher.group("pubkey"));
-        KeyPair keyPair;
         try {
-            keyPair = CryptoUtils.reconstructECCKeyPairFromBytes(privkeyBytes, pubkeyBytes);
-            privkey = keyPair.getPrivate();
-            pubkey = keyPair.getPublic();
+            privkey = reconstructECCPrivateKeyFromBytes(privkeyBytes);
+            pubkey = reconstructECCPublicKeyFromBytes(pubkeyBytes);
         } catch (GeneralSecurityException e) {
             throw new RuntimeException(format("Could not reconstruct key pair from key file '%s'%n", keyFilePath), e);
         }

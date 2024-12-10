@@ -1,13 +1,8 @@
 package shp.server;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static java.lang.String.format;
 import static util.ByteUtils.bytesToHex;
@@ -90,6 +85,41 @@ public class UserDB {
         } catch (IOException e) {
             System.err.printf("An error occurred while writing user %s to the database: %s", userid, e.getMessage());
             return null;
+        }
+    }
+
+    public synchronized void deleteUser(String userid) {
+        if (!db.containsKey(userid)) {
+            System.out.printf("Could not delete user '%s': user not present in database%n%n", userid);
+            return;
+        }
+        db.remove(userid);
+        try {
+            // Read all lines from the file
+            List<String> lines = new ArrayList<>();
+            BufferedReader reader = new BufferedReader(new FileReader(DB_PATH));
+            String currentLine;
+
+            while ((currentLine = reader.readLine()) != null) {
+                if (currentLine.trim().startsWith(userid)) {
+                    // Skip the line to remove
+                    continue;
+                }
+                lines.add(currentLine);
+            }
+            reader.close();
+
+            // Write the updated lines back to the file
+            BufferedWriter writer = new BufferedWriter(new FileWriter(DB_PATH));
+            for (String line : lines) {
+                writer.write(line);
+                writer.newLine();
+            }
+            writer.close();
+
+            System.out.println("User " + userid + " removed successfully.");
+        } catch (IOException e) {
+            System.out.println("An error occurred while deleting the user: " + e.getMessage());
         }
     }
 }

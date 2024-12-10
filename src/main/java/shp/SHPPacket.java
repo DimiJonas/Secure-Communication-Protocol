@@ -54,4 +54,12 @@ public class SHPPacket {
 
         return new SHPPacket(payload, type);
     }
+
+    public MessageType getType() {
+        return type;
+    }
+
+    public byte[] getData() {
+        return payload;
+    }
 }

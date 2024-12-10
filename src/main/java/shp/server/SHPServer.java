@@ -7,6 +7,7 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import shp.MessageType;
 import shp.SHPPacket;
 import shp.SHPPacketFactory;
+import shp.SHPResult;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -28,10 +29,11 @@ public class SHPServer {
         this.port = port;
     }
 
-    public void executeHandshake() {
+    public SHPResult executeHandshake() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             // initialize tcp connection
             Socket clientSocket = serverSocket.accept();
+            String host = clientSocket.getInetAddress().getHostAddress();
 
             InputStream input = clientSocket.getInputStream();
             OutputStream output = clientSocket.getOutputStream();
@@ -189,6 +191,8 @@ public class SHPServer {
             byte[] nonce5Plus1 = new byte[16];
             dataBuffer.get(nonce5Plus1);
             // TODO: verify nonce5Plus1
+
+            return new SHPResult(cryptoConfig, host, udpPort, request, username);
         } catch (IOException e) {
             throw new RuntimeException("socket IO error");
         } catch (GeneralSecurityException e) {

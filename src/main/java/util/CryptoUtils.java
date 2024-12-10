@@ -59,17 +59,6 @@ public class CryptoUtils {
         return verifyMac(data, mac, DEFAULT_MAC_ALGORITHM, key, new byte[0]);
     }
 
-    public static KeyPair generateECCKeyPair() throws GeneralSecurityException {
-        return generateECCKeyPair(DEFAULT_ECC_CURVE);
-    }
-
-    public static KeyPair generateECCKeyPair(String curve) throws GeneralSecurityException {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance(DEFAULT_ECC_ALGORITHM, new BouncyCastleProvider());
-        ECGenParameterSpec ecSpec = new ECGenParameterSpec(curve);
-        kpg.initialize(ecSpec, SecureRandom.getInstanceStrong());
-        return kpg.generateKeyPair();
-    }
-
     public static byte[] generateNonce(int length) throws NoSuchAlgorithmException {
         byte[] nonce = new byte[length];
         SecureRandom.getInstanceStrong().nextBytes(nonce);
@@ -122,16 +111,22 @@ public class CryptoUtils {
         return cipher.doFinal(data);
     }
 
-    public static KeyPair reconstructECCKeyPairFromBytes(byte[] privateKeyBytes, byte[] publicKeyBytes) throws GeneralSecurityException {
+    public static KeyPair generateECCKeyPair() throws GeneralSecurityException {
+        return generateECCKeyPair(DEFAULT_ECC_CURVE);
+    }
+
+    public static KeyPair generateECCKeyPair(String curve) throws GeneralSecurityException {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance(DEFAULT_ECC_ALGORITHM, new BouncyCastleProvider());
+        ECGenParameterSpec ecSpec = new ECGenParameterSpec(curve);
+        kpg.initialize(ecSpec, SecureRandom.getInstanceStrong());
+        return kpg.generateKeyPair();
+    }
+
+    public static PrivateKey reconstructECCPrivateKeyFromBytes(byte[] privateKeyBytes) throws GeneralSecurityException {
         KeyFactory keyFactory = KeyFactory.getInstance(DEFAULT_ECC_ALGORITHM);
 
-        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
-
         PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-
-        return new KeyPair(publicKey, privateKey);
+        return keyFactory.generatePrivate(privateKeySpec);
     }
 
     public static PublicKey reconstructECCPublicKeyFromBytes(byte[] publicKeyBytes) throws GeneralSecurityException {

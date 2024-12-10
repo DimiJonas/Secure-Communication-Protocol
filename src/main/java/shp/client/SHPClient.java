@@ -6,14 +6,13 @@ import dstp.config.DSTPConfig;
 import shp.MessageType;
 import shp.SHPPacket;
 import shp.SHPPacketFactory;
-import shp.server.UserDB;
+import shp.SHPResult;
 
 import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.Key;
-import java.security.PublicKey;
 
 import static shp.server.UserDB.SALT;
 import static util.ByteUtils.bytesToHex;
@@ -38,8 +37,8 @@ public class SHPClient {
         this.udpPort = udpPort;
     }
 
-    public void executeHandshake() {
-        try (Socket socket = new Socket(host, tcpPort)){
+    public SHPResult executeHandshake() {
+        try (Socket socket = new Socket(host, tcpPort)) {
             // initialize tcp connection
             InputStream input = socket.getInputStream();
             OutputStream output = socket.getOutputStream();
@@ -163,6 +162,8 @@ public class SHPClient {
             SHPPacket msgFive = SHPPacketFactory.createTypeFivePacket(nonce5, cryptoProvider,
                     hexToBytes(cryptoConfig.getSymmetric_key()), hexToBytes(cryptoConfig.getMackey()));
             bufferedOutput.write(msgFive.serialize());
+
+            return new SHPResult(cryptoConfig, host, udpPort, request, username);
         } catch (IOException e) {
             throw new RuntimeException("socket IO error");
         } catch (GeneralSecurityException e) {
