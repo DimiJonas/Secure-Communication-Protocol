@@ -1,16 +1,15 @@
 package util;
 
 import org.junit.jupiter.api.Test;
-import util.Utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class UtilsTest {
+public class ByteUtilsTest {
 
     @Test
     public void testHexToBytes(){
         String hex = "48656c6c6f2c20576f726c6421";
-        byte[] bytes = Utils.hexToBytes(hex);
+        byte[] bytes = ByteUtils.hexToBytes(hex);
         String str = new String(bytes);
         assertEquals("Hello, World!", str);
     }
@@ -19,7 +18,7 @@ public class UtilsTest {
     public void testBytesToHex(){
         String str = "Hello, World!";
         byte[] bytes = str.getBytes();
-        String hex = Utils.bytesToHex(bytes);
+        String hex = ByteUtils.bytesToHex(bytes);
         assertEquals("48656c6c6f2c20576f726c6421", hex);
     }
 
@@ -27,8 +26,8 @@ public class UtilsTest {
     public void testHexByteConversion(){
         String str = "Hello, World!";
         byte[] bytes = str.getBytes();
-        String hex = Utils.bytesToHex(bytes);
-        bytes = Utils.hexToBytes(hex);
+        String hex = ByteUtils.bytesToHex(bytes);
+        bytes = ByteUtils.hexToBytes(hex);
         assertEquals(str, new String(bytes));
     }
 }

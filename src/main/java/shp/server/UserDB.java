@@ -4,13 +4,17 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import static util.HashUtils.generateSha256Hash;
+import static java.lang.String.format;
+import static util.ByteUtils.bytesToHex;
+import static util.CryptoUtils.generatePasswordHash;
 
 public class UserDB {
+    public static final String SALT = "some salt";
     private static final String DB_PATH = "src/main/resources/pa2/server/userdatabase.txt";
     private static final String DB_DELIMITER = ":";
 
@@ -35,7 +39,7 @@ public class UserDB {
                 db.put(parts[0], new AuthRecord(parts[0], parts[1], parts[2], parts[3]));
             }
         } catch (IOException e) {
-            System.out.printf("Could not read database file '%s'%n%s", DB_PATH, e);
+            throw new RuntimeException(format("Could not read database file '%s'%n", DB_PATH), e);
         }
     }
 
@@ -57,19 +61,26 @@ public class UserDB {
             return false;
         }
 
-        return record.passwordhash().equalsIgnoreCase(generateSha256Hash(password + record.salt()));
+        byte[] passwordhashBytes;
+        try {
+            passwordhashBytes = generatePasswordHash(password, record.salt());
+            return record.passwordhash().equalsIgnoreCase(bytesToHex(passwordhashBytes));
+        } catch (NoSuchAlgorithmException e) {
+            return false;
+        }
     }
 
-    public synchronized AuthRecord addUser(String userid, String password, String pubkey) {
+    public synchronized AuthRecord addUser(String userid, String password, String pubkey) throws NoSuchAlgorithmException {
         if (db.containsKey(userid)) {
             System.out.printf("Could not add user '%s': user already present in database%n%n", userid);
             return null;
         }
 
         Random random = new Random();
-        String salt = String.valueOf(random.nextLong());
-        String passwordhash = generateSha256Hash(password + salt);
-        AuthRecord record = new AuthRecord(userid, passwordhash, salt, pubkey);
+//        String salt = String.valueOf(random.nextLong());
+        String salt = SALT;
+        byte[] passwordhashBytes = generatePasswordHash(password, salt);
+        AuthRecord record = new AuthRecord(userid, bytesToHex(passwordhashBytes), salt, pubkey);
         db.put(userid, record);
 
         try (FileWriter fileWriter = new FileWriter(DB_PATH, true)) {

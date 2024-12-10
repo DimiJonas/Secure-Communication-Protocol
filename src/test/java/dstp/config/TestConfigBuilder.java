@@ -1,6 +1,6 @@
 package dstp.config;
 
-import util.Utils;
+import util.ByteUtils;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -8,7 +8,7 @@ import javax.crypto.spec.IvParameterSpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
-import static util.Utils.getBaseAlgorithm;
+import static util.ByteUtils.getBaseAlgorithm;
 
 // Builder class for DSTPConfig
 public class TestConfigBuilder {
@@ -108,7 +108,7 @@ public class TestConfigBuilder {
         SecureRandom secureRandom = new SecureRandom();
         keyGen.init(keysize, secureRandom);
         SecretKey key = keyGen.generateKey();
-        return Utils.bytesToHex(key.getEncoded());
+        return ByteUtils.bytesToHex(key.getEncoded());
     }
 
     public TestConfigBuilder generateIv(final int ivsize) {
@@ -122,7 +122,7 @@ public class TestConfigBuilder {
         byte[] iv = new byte[ivsize];
         SecureRandom secureRandom = new SecureRandom();
         secureRandom.nextBytes(iv);
-        return Utils.bytesToHex(new IvParameterSpec(iv).getIV());
+        return ByteUtils.bytesToHex(new IvParameterSpec(iv).getIV());
     }
 
     public DSTPConfig build() {

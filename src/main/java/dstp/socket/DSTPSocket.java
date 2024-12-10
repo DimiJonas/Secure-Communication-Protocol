@@ -10,7 +10,7 @@ import java.net.*;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 
-import static util.Utils.hexToBytes;
+import static util.ByteUtils.hexToBytes;
 
 
 public class DSTPSocket extends MulticastSocket {

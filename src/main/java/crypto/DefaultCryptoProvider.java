@@ -13,12 +13,12 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
-import static util.Utils.getBaseAlgorithm;
-import static util.Utils.hexToBytes;
+import static util.ByteUtils.getBaseAlgorithm;
+import static util.ByteUtils.hexToBytes;
+import static util.CryptoUtils.generateNonce;
 
 public class DefaultCryptoProvider implements CryptoProvider {
     private final DSTPConfig config;
@@ -68,7 +68,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
 
         // Combine IV and encrypted data except for ECB
         if (!confidentialityAlgorithm.contains("ecb")) {
-            byte[] result = new byte[ivSize+ encrypted.length];
+            byte[] result = new byte[ivSize + encrypted.length];
             System.arraycopy(iv, 0, result, 0, ivSize);
             System.arraycopy(encrypted, 0, result, ivSize, encrypted.length);
             return result;
@@ -85,13 +85,13 @@ public class DefaultCryptoProvider implements CryptoProvider {
     }
 
     private byte[] encryptChaCha20Poly1305(byte[] data, byte[] key) throws GeneralSecurityException {
-        byte[] nonce = getNonce();
+        byte[] nonce = generateNonce(12);
         IvParameterSpec parameterSpec = new IvParameterSpec(nonce);
         return doChaCha20Encryption("ChaCha20-Poly1305", key, nonce, parameterSpec, data, aadString);
     }
 
     private byte[] encryptChaCha20(byte[] data, byte[] key) throws GeneralSecurityException {
-        byte[] nonce = getNonce();
+        byte[] nonce = generateNonce(12);
         ChaCha20ParameterSpec parameterSpec = new ChaCha20ParameterSpec(nonce, 1);
         return doChaCha20Encryption("ChaCha20", key, nonce, parameterSpec, data);
     }
@@ -115,12 +115,6 @@ public class DefaultCryptoProvider implements CryptoProvider {
         System.arraycopy(nonce, 0, result, 0, nonce.length);
         System.arraycopy(encrypted, 0, result, nonce.length, encrypted.length);
         return result;
-    }
-
-    private byte[] getNonce() throws NoSuchAlgorithmException {
-        byte[] nonce = new byte[12];
-        SecureRandom.getInstanceStrong().nextBytes(nonce);
-        return nonce;
     }
 
     @Override
@@ -181,6 +175,7 @@ public class DefaultCryptoProvider implements CryptoProvider {
     private byte[] doChaCha20Decryption(byte[] data, byte[] key, String cipherString) throws GeneralSecurityException {
         return doChaCha20Decryption(data, key, cipherString, null);
     }
+
     private byte[] doChaCha20Decryption(byte[] data, byte[] key, String cipherString, String aad) throws GeneralSecurityException {
         Cipher cipher = Cipher.getInstance(cipherString);
         SecretKey secretKey = new SecretKeySpec(key, "ChaCha20");

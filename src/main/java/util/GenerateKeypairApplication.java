@@ -5,9 +5,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 
-import static util.SafeCurves.Curve25519;
 import static util.SimpleCurves.secp256r1;
-import static util.Utils.bytesToHex;
+import static util.ByteUtils.bytesToHex;
 
 public class GenerateKeypairApplication {
 

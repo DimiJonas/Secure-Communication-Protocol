@@ -6,22 +6,21 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.ChaChaEngine;
 import org.bouncycastle.crypto.engines.RC4Engine;
 import org.bouncycastle.crypto.modes.ChaCha20Poly1305;
-import org.bouncycastle.crypto.params.*;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
-import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
-import java.security.spec.ECGenParameterSpec;
 import java.util.Arrays;
 
-import static util.SafeCurves.Curve25519;
-import static util.Utils.*;
-import static util.Utils.bytesToHex;
+import static util.ByteUtils.getBaseAlgorithm;
+import static util.ByteUtils.hexToBytes;
+import static util.CryptoUtils.*;
 
 public class BouncyCastleCryptoProvider implements CryptoProvider {
     private final DSTPConfig config;
@@ -86,7 +85,7 @@ public class BouncyCastleCryptoProvider implements CryptoProvider {
     }
 
     private byte[] encryptChaCha20Poly1305(byte[] data, byte[] key) throws GeneralSecurityException, InvalidCipherTextException {
-        byte[] nonce = getNonce();
+        byte[] nonce = generateNonce(12);
         return doChaCha20Poly1305Encryption(data, key, nonce);
     }
 
@@ -110,7 +109,7 @@ public class BouncyCastleCryptoProvider implements CryptoProvider {
     }
 
     private byte[] encryptChaCha20(byte[] data, byte[] key) throws GeneralSecurityException {
-        byte[] nonce = getNonce();
+        byte[] nonce = generateNonce(12);
         ChaChaEngine engine = new ChaChaEngine();
 
         KeyParameter keyParam = new KeyParameter(key);
@@ -125,12 +124,6 @@ public class BouncyCastleCryptoProvider implements CryptoProvider {
         System.arraycopy(nonce, 0, result, 0, nonce.length);
         System.arraycopy(output, 0, result, nonce.length, output.length);
         return result;
-    }
-
-    private byte[] getNonce() throws NoSuchAlgorithmException {
-        byte[] nonce = new byte[12];
-        SecureRandom.getInstanceStrong().nextBytes(nonce);
-        return nonce;
     }
 
     @Override
@@ -221,34 +214,17 @@ public class BouncyCastleCryptoProvider implements CryptoProvider {
     @Override
     public byte[] generateIntegrityCheck(byte[] data, byte[] key) throws GeneralSecurityException {
         Integrity integrity = config.getIntegrity();
-        switch (integrity) {
-            case MAC:
-                String algorithm = config.getMac().toLowerCase();
-                Mac mac = Mac.getInstance(algorithm, BC_PROVIDER);
-
-                SecretKeySpec secretKey = new SecretKeySpec(key, algorithm);
-                if (algorithm.contains("gmac")){
-                    IvParameterSpec ivSpec = new IvParameterSpec(hexToBytes(config.getIv()));
-                    mac.init(secretKey, ivSpec);
-                } else {
-                    mac.init(secretKey);
-                }
-
-                return mac.doFinal(data);
-            case HASH:
-                MessageDigest digest = MessageDigest.getInstance(config.getH(), BC_PROVIDER);
-                return digest.digest(data);
-            case NONE:
+        return switch (integrity) {
+            case MAC -> generateMac(data, config.getMac(), key, hexToBytes(config.getIv()));
+            case HASH -> generateHash(data, config.getH());
+            case NONE ->
                 // no explicit integrity check
-                return new byte[0];
-            default:
-                throw new NoSuchAlgorithmException("Invalid integrity algorithm");
-        }
+                    new byte[0];
+        };
     }
 
     @Override
-    public boolean verifyIntegrityCheck(byte[] data, byte[] check, byte[] key)
-            throws GeneralSecurityException {
+    public boolean verifyIntegrityCheck(byte[] data, byte[] check, byte[] key) throws GeneralSecurityException {
         byte[] computed = generateIntegrityCheck(data, key);
         return MessageDigest.isEqual(check, computed);
     }

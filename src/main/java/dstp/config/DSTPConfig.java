@@ -1,8 +1,7 @@
 package dstp.config;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.Buffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,13 +60,14 @@ public class DSTPConfig {
     /**
      * empty constructor for Testing
      */
-    public DSTPConfig() {
+    public DSTPConfig(){
+
     }
 
-    public DSTPConfig(String configPath) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(configPath))) {
+    private void readConfig(Reader reader) {
+        try (BufferedReader bufferedReader = new BufferedReader(reader)) {
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = bufferedReader.readLine()) != null) {
                 line = line.trim();
                 // Skip empty lines and comments
                 if (line.isEmpty() || line.startsWith("#")) {
@@ -118,8 +118,36 @@ public class DSTPConfig {
                 }
             }
         } catch (IOException e) {
+            throw new RuntimeException("Error reading DSTP config", e);
+        }
+    }
+
+    public DSTPConfig(String configPath) {
+        try (FileReader reader = new FileReader(configPath)) {
+            readConfig(reader);
+        } catch (IOException e) {
             System.out.printf("Could not read config file '%s'%n", configPath);
         }
+    }
+
+    public DSTPConfig(Reader reader) {
+        readConfig(reader);
+    }
+
+    public String serialize(){
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("CONFIDENTIALITY: ").append(confidentiality).append("\n");
+        stringBuilder.append("SYMMETRIC_KEY: ").append(symmetric_key).append("\n");
+        stringBuilder.append("SYMMETRIC_KEY_SIZE: ").append(symmetric_key_size).append("\n");
+        stringBuilder.append("IV: ").append(iv).append("\n");
+        stringBuilder.append("IV_SIZE: ").append(iv_size).append("\n");
+        stringBuilder.append("INTEGRITY: ").append(integrity).append("\n");
+        stringBuilder.append("H: ").append(h).append("\n");
+        stringBuilder.append("MAC: ").append(mac).append("\n");
+        stringBuilder.append("MAC_KEY: ").append(mackey).append("\n");
+        stringBuilder.append("MAC_KEY_SIZE: ").append(mackey_size).append("\n");
+
+        return stringBuilder.toString();
     }
 
     public String getConfidentiality() {

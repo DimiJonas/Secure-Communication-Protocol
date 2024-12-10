@@ -8,12 +8,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Random;
 
 import static java.lang.System.exit;
 import static util.CryptoUtils.generateECCKeyPair;
-import static util.Utils.bytesToHex;
+import static util.ByteUtils.bytesToHex;
 
 public class AddUserApplication {
     public static void main(String[] args) {
@@ -75,6 +76,8 @@ public class AddUserApplication {
             }
         } catch (IOException e) {
             System.err.println("Error reading last line: " + e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            System.err.println("Error generating password hash: " + e.getMessage());
         } catch (GeneralSecurityException e) {
             System.err.println("Error generating public key: " + e.getMessage());
         }
