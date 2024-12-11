@@ -5,13 +5,15 @@ import org.junit.jupiter.api.Test;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
+import java.math.BigInteger;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static util.ByteUtils.bytesToHex;
-import static util.CryptoUtils.generatePBEKey;
-import static util.CryptoUtils.generatePasswordHash;
+import static util.CryptoUtils.*;
 
 class CryptoUtilsTest {
 
@@ -165,5 +167,106 @@ class CryptoUtilsTest {
         // Verify signature fails with wrong data
         byte[] wrongData = "Different message".getBytes();
         assertFalse(CryptoUtils.verifyECDSASignature(wrongData, signature, keyPair.getPublic()));
+    }
+
+    @Test
+    void testGenerateDHParams() throws GeneralSecurityException {
+//        DHParameterSpec dhParams = CryptoUtils.generateDHParams();
+//        System.out.println(dhParams.getP());
+//        System.out.println(dhParams.getG());
+//        System.out.println(dhParams.getL());
+//        assertNotNull(dhParams);
+    }
+
+    @Test
+    void testGenerateDHKeyPairDefault() throws GeneralSecurityException {
+        KeyPair keyPair = generateDHKeyPair();
+
+        assertNotNull(keyPair, "KeyPair should not be null");
+        assertNotNull(keyPair.getPrivate(), "Private key should not be null");
+        assertNotNull(keyPair.getPublic(), "Public key should not be null");
+        assertTrue(keyPair.getPrivate() instanceof PrivateKey, "Private key should be a PrivateKey");
+        assertTrue(keyPair.getPublic() instanceof PublicKey, "Public key should be a PublicKey");
+    }
+
+    @Test
+    void testDoDHKeyAgreement() throws GeneralSecurityException {
+        // Generate two key pairs
+        KeyPair aliceKeyPair = generateDHKeyPair();
+        KeyPair bobKeyPair = generateDHKeyPair();
+
+        // Perform key agreement
+        byte[] aliceSharedSecret = doDHKeyAgreement(aliceKeyPair, bobKeyPair.getPublic());
+        byte[] bobSharedSecret = doDHKeyAgreement(bobKeyPair, aliceKeyPair.getPublic());
+
+        // Shared secrets should be the same
+        assertNotNull(aliceSharedSecret, "Alice's shared secret should not be null");
+        assertNotNull(bobSharedSecret, "Bob's shared secret should not be null");
+        assertArrayEquals(aliceSharedSecret, bobSharedSecret, "Shared secrets should be identical");
+    }
+
+    @Test
+    void testDeriveKeyPBKDF2DefaultAlgorithm() throws GeneralSecurityException {
+        String password = "testPassword";
+        String[] algorithms = {"IDEA", "RC6", "ChaCha20-Poly1305", "AES"};
+
+        for (String algorithm : algorithms) {
+            SecretKey derivedKey = deriveKeyPBKDF2(password, algorithm);
+
+            assertNotNull(derivedKey, "Derived key should not be null for " + algorithm);
+            assertNotEquals(0, derivedKey.getEncoded().length, "Derived key should have non-zero length for " + algorithm);
+        }
+    }
+
+    @Test
+    void testDeriveKeyPBKDF2CustomParams() throws GeneralSecurityException {
+        String pbkdfAlgorithm = "PBKDF2WithHmacSHA256";
+        String password = "testPassword";
+        byte[] salt = "randomsalt".getBytes();
+        int iterations = 10000;
+        int keyLength = 256;
+        String usageAlgorithm = "AES";
+
+        SecretKey derivedKey = deriveKeyPBKDF2(
+                pbkdfAlgorithm,
+                password,
+                salt,
+                iterations,
+                keyLength,
+                usageAlgorithm
+        );
+
+        assertNotNull(derivedKey, "Derived key should not be null");
+        assertEquals(usageAlgorithm, derivedKey.getAlgorithm(), "Key algorithm should match usage algorithm");
+        assertNotEquals(0, derivedKey.getEncoded().length, "Derived key should have non-zero length");
+    }
+
+    @Test
+    void testDoDHKeyAgreementInvalidKey() {
+        // Try to perform key agreement with incompatible keys
+        KeyPair keyPair = assertDoesNotThrow(() ->
+                generateDHKeyPair()
+        );
+
+        PublicKey invalidPublicKey = new PublicKey() {
+            @Override
+            public String getAlgorithm() {
+                return "INVALID";
+            }
+
+            @Override
+            public String getFormat() {
+                return null;
+            }
+
+            @Override
+            public byte[] getEncoded() {
+                return new byte[0];
+            }
+        };
+
+        assertThrows(GeneralSecurityException.class, () ->
+                doDHKeyAgreement(keyPair, invalidPublicKey)
+        );
     }
 }

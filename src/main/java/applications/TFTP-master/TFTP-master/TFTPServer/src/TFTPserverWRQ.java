@@ -30,7 +30,7 @@ class TFTPserverWRQ extends Thread {
 
 			host = request.getAddress();
 			port = request.getPort();
-			fileName = request.fileName();
+			fileName = shpResult.request().split("-")[0];
 			//create file object in parent folder
 			saveFile = new File("../"+fileName);
 

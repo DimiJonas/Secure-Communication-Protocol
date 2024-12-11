@@ -70,17 +70,62 @@ public class SHPPacketFactory {
         }
     }
 
+    public static SHPPacket createTypeThreePacket2(String request, String userID, byte[] nonce3, byte[] nonce4, int udpPort, Key pbeKey, byte[] ydhC) {
+        try{
+            byte[] nonce3Plus1 = Arrays.copyOf(nonce3, nonce3.length);
+            incrementByteNumber(nonce3Plus1);
+
+            // build data
+            int dataLength = request.length() + userID.length() + nonce3Plus1.length + nonce4.length + 4; // 4 bytes for udpPort
+            ByteBuffer dataBuffer = ByteBuffer.allocate(dataLength);
+            dataBuffer.put(request.getBytes());
+            dataBuffer.put(userID.getBytes());
+            dataBuffer.put(nonce3Plus1);
+            dataBuffer.put(nonce4);
+            dataBuffer.putInt(udpPort);
+            byte[] data = dataBuffer.array();
+
+            // build security elements
+            byte[] encryptedData = PBEEncrypt(data, pbeKey);
+            ByteBuffer toSign = ByteBuffer.allocate(encryptedData.length + ydhC.length);
+            toSign.put(encryptedData);
+            toSign.put(ydhC);
+            byte[] signature = generateECDSASignature(toSign.array(), ClientECCKeyPair.getInstance().getPrivate());
+            ByteBuffer toMac = ByteBuffer.allocate(encryptedData.length + ydhC.length + signature.length);
+            toMac.put(encryptedData);
+            toMac.put(ydhC);
+            toMac.put(signature);
+            byte[] mac = generateMac(toMac.array(), pbeKey.getEncoded());
+
+            // build payload
+            // adding a length field before each element
+            int payloadLength = 4 + encryptedData.length + 4 + ydhC.length + 4 + signature.length + 4 + mac.length;
+            ByteBuffer payloadBuffer = ByteBuffer.allocate(payloadLength);
+            payloadBuffer.putInt(encryptedData.length);
+            payloadBuffer.put(encryptedData);
+            payloadBuffer.putInt(ydhC.length);
+            payloadBuffer.put(ydhC);
+            payloadBuffer.putInt(signature.length);
+            payloadBuffer.put(signature);
+            payloadBuffer.putInt(mac.length);
+            payloadBuffer.put(mac);
+
+            return new SHPPacket(payloadBuffer.array(), THREE2);
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException("Failed create SHP type 32 packet", e);
+        }
+    }
+
     public static SHPPacket createTypeFourPacket(String requestConfirmation, byte[] nonce4, byte[] nonce5, PublicKey clientPubkey, Key pbeKey, byte[] cryptoConfig) {
         try {
             // collect data parts
-            byte[] requestConfirmationBytes = requestConfirmation.getBytes();
             byte[] nonce4Plus1 = Arrays.copyOf(nonce4, nonce4.length);
             incrementByteNumber(nonce4Plus1);
 
-            int dataLength = 4 + requestConfirmationBytes.length + nonce4Plus1.length + nonce5.length + cryptoConfig.length; // 4 bytes for request confirmation length
+            int dataLength = 4 + requestConfirmation.length() + nonce4Plus1.length + nonce5.length + cryptoConfig.length; // 4 bytes for request confirmation length
             ByteBuffer dataBuffer = ByteBuffer.allocate(dataLength);
             dataBuffer.putInt(requestConfirmation.length());
-            dataBuffer.put(requestConfirmationBytes);
+            dataBuffer.put(requestConfirmation.getBytes());
             dataBuffer.put(nonce4Plus1);
             dataBuffer.put(nonce5);
             dataBuffer.put(cryptoConfig);
@@ -94,6 +139,51 @@ public class SHPPacketFactory {
             return buildCryptoPacket(encryptedData, signature, mac, FOUR);
         } catch (GeneralSecurityException e) {
             throw new RuntimeException("Failed to create SHP type 4 packet", e);
+        }
+    }
+
+    public static SHPPacket createTypeFourPacket2(String requestConfirmation, byte[] nonce4, byte[] nonce5, PublicKey clientPubkey, Key pbeKey, byte[] cryptoConfig, byte[] ydhS){
+        try {
+            byte[] nonce4Plus1 = Arrays.copyOf(nonce4, nonce4.length);
+            incrementByteNumber(nonce4Plus1);
+
+            int dataLength = 4 + requestConfirmation.length() + nonce4Plus1.length + nonce5.length + cryptoConfig.length; // 4 bytes for request confirmation length
+            ByteBuffer dataBuffer = ByteBuffer.allocate(dataLength);
+            dataBuffer.putInt(requestConfirmation.length());
+            dataBuffer.put(requestConfirmation.getBytes());
+            dataBuffer.put(nonce4Plus1);
+            dataBuffer.put(nonce5);
+            dataBuffer.put(cryptoConfig);
+            byte[] data = dataBuffer.array();
+
+            // build security elements
+            byte[] encryptedData = ECIESEncrypt(data, clientPubkey);
+            ByteBuffer toSign = ByteBuffer.allocate(encryptedData.length + ydhS.length);
+            toSign.put(encryptedData);
+            toSign.put(ydhS);
+            byte[] signature = generateECDSASignature(toSign.array(), ServerECCKeyPair.getInstance().getPrivate());
+            ByteBuffer toMac = ByteBuffer.allocate(encryptedData.length + ydhS.length + signature.length);
+            toMac.put(encryptedData);
+            toMac.put(ydhS);
+            toMac.put(signature);
+            byte[] mac = generateMac(toMac.array(), pbeKey.getEncoded());
+
+            // build payload
+            // adding a length field before each element
+            int payloadLength = 4 + encryptedData.length + 4 + ydhS.length + 4 + signature.length + 4 + mac.length;
+            ByteBuffer payloadBuffer = ByteBuffer.allocate(payloadLength);
+            payloadBuffer.putInt(encryptedData.length);
+            payloadBuffer.put(encryptedData);
+            payloadBuffer.putInt(ydhS.length);
+            payloadBuffer.put(ydhS);
+            payloadBuffer.putInt(signature.length);
+            payloadBuffer.put(signature);
+            payloadBuffer.putInt(mac.length);
+            payloadBuffer.put(mac);
+
+            return new SHPPacket(payloadBuffer.array(), FOUR2);
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException("Failed to create SHP type 42 packet", e);
         }
     }
 

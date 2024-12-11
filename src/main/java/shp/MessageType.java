@@ -41,7 +41,23 @@ public enum MessageType {
     // just for synchronization
     // the Keys for E() and MAC() are those received in crypto config
     //
-    FIVE((byte) 5);
+    FIVE((byte) 5),
+
+    // c -> s
+    // contains:
+    //      {request, userID, Nonce3+1, Nonce4 , UDP_PORT}~PBEH  +
+    //      ydh-client +
+    //      DigitalSignatureKprivClient(movie, userID, Nonce3+1, Nonce4 , UDP_PORT, ydh-client) +
+    //      HMACkmac(Total_Message)
+    THREE2((byte) 32),
+
+    // s -> c
+    // contains:
+    //      {request-confirmation, Nonce4+1, Nonce 5, crypto config}~Ekpubclient +
+    //      Ydh-server +
+    //      DigitalSignatureKprivServer(request confirmation, userID, Nonce4+1, crypto config, Ydh-sever) +
+    //      HMACkmac(Total_Message)
+    FOUR2((byte) 42);
 
     private final byte value;
 
@@ -60,6 +76,8 @@ public enum MessageType {
             case "3" -> THREE;
             case "4" -> FOUR;
             case "5" -> FIVE;
+            case "32" -> THREE2;
+            case "42" -> FOUR2;
             default -> null;
         };
     }

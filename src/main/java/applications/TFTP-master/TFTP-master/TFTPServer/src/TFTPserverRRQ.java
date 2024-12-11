@@ -26,7 +26,7 @@ class TFTPserverRRQ extends Thread {
 			sock = new DSTPSocket(shpResult.config());
 //			sock = new DatagramSocket();
 			sock.setSoTimeout(1000);
-			fileName = request.fileName();
+			fileName = shpResult.request().split("-")[0];
 
 			host = request.getAddress();
 			port = request.getPort();
