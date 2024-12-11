@@ -19,7 +19,7 @@ class TFTPclientWRQ {
 		dataMode = mode;
 		try {
 			// Create socket and open output file
-			SHPResult shpResult = new SHPClient(server.getHostAddress(), 45678, username, password, name, udpPort, "../../../../../../resources/pa2/client/ClientECCKeyPair.sec", "../../../../../../resources/pa2/client/ServerECCPubKey.txt").executeHandshake();
+			SHPResult shpResult = new SHPClient(server.getHostAddress(), 45678, username, password, name+"-"+dataMode, udpPort, "../../../../../../resources/pa2/client/ClientECCKeyPair.sec", "../../../../../../resources/pa2/client/ServerECCPubKey.txt").executeHandshake();
 			DatagramSocket sock = new DSTPSocket(shpResult.config());
 //			DatagramSocket sock = new DatagramSocket();
 			sock.setSoTimeout(2000);
@@ -27,10 +27,14 @@ class TFTPclientWRQ {
 
 			FileInputStream source = new FileInputStream("../"+fileName);
 
+			// wait a second until server is ready
+			try{
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				System.out.println("Thread interrupted");
+			}
 			// Send request to server
-
 			TFTPwrite reqPak = new TFTPwrite(fileName, dataMode);
-			System.out.println("Sending request to server " + server + " on port " + udpPort);
 			reqPak.send(server, udpPort, sock);
 
 			TFTPpacket sendRsp = TFTPpacket.receive(sock);

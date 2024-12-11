@@ -13,6 +13,7 @@ import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Random;
 
 import static util.SimpleCurves.secp256r1;
 
@@ -61,7 +62,7 @@ public class CryptoUtils {
 
     public static byte[] generateNonce(int length) throws NoSuchAlgorithmException {
         byte[] nonce = new byte[length];
-        SecureRandom.getInstanceStrong().nextBytes(nonce);
+        new Random().nextBytes(nonce);
         return nonce;
     }
 

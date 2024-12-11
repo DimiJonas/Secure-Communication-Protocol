@@ -1,5 +1,6 @@
 import dstp.config.DSTPConfig;
 import dstp.socket.DSTPSocket;
+import shp.SHPResult;
 
 import java.net.*;
 import java.security.MessageDigest;
@@ -18,11 +19,11 @@ class TFTPserverRRQ extends Thread {
 	protected String fileName;
 
 	// initialize read request
-	public TFTPserverRRQ(TFTPread request, DSTPConfig cryptoConfig) throws TftpException {
+	public TFTPserverRRQ(TFTPread request, SHPResult shpResult) throws TftpException {
 		try {
 			req = request;
 			//open new socket with random port num for tranfer
-			sock = new DSTPSocket(cryptoConfig);
+			sock = new DSTPSocket(shpResult.config());
 //			sock = new DatagramSocket();
 			sock.setSoTimeout(1000);
 			fileName = request.fileName();

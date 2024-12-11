@@ -26,6 +26,12 @@ class TFTPclientRRQ {
 			sock.setSoTimeout(2000); // set time out to 2s
 
 			FileOutputStream outFile = new FileOutputStream("../"+fileName); //parent folder
+			// wait a second until server is ready
+			try{
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				System.out.println("Thread interrupted");
+			}
 			// Send request to server
 			TFTPread reqPak = new TFTPread(fileName, dataMode);
 			reqPak.send(server, 6973, sock);

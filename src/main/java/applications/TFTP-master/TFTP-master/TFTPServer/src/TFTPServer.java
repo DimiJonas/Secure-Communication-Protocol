@@ -23,12 +23,12 @@ public class TFTPServer {
 				// receive read request
 				if (in instanceof TFTPread) {
 					System.out.println("Read Request from " + in.getAddress());
-					TFTPserverRRQ r = new TFTPserverRRQ((TFTPread) in, shpResult.config());
+					TFTPserverRRQ r = new TFTPserverRRQ((TFTPread) in, shpResult);
 				}
 				// receive write request
 				else if (in instanceof TFTPwrite) {
 					System.out.println("Write Request from " + in.getAddress());
-					TFTPserverWRQ w = new TFTPserverWRQ((TFTPwrite) in, shpResult.config());
+					TFTPserverWRQ w = new TFTPserverWRQ((TFTPwrite) in, shpResult);
 				}
 			}
 		} catch (SocketException e) {

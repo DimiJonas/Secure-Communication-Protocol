@@ -1,5 +1,6 @@
 import dstp.config.DSTPConfig;
 import dstp.socket.DSTPSocket;
+import shp.SHPResult;
 
 import java.net.*;
 import java.io.*;
@@ -20,10 +21,10 @@ class TFTPserverWRQ extends Thread {
 	protected String fileName;
 
 	// Initialize read request
-	public TFTPserverWRQ(TFTPwrite request, DSTPConfig cryptoConfig) throws TftpException {
+	public TFTPserverWRQ(TFTPwrite request, SHPResult shpResult) throws TftpException {
 		try {
 			req = request;
-			sock = new DSTPSocket(cryptoConfig); // new port for transfer
+			sock = new DSTPSocket(shpResult.config()); // new port for transfer
 //			sock = new DatagramSocket(); // new port for transfer
 			sock.setSoTimeout(1000);
 
