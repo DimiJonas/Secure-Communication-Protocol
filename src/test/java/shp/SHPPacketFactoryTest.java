@@ -1,25 +1,34 @@
 package shp;
 
+import crypto.CryptoProvider;
+import crypto.CryptoProviderFactory;
+import dstp.config.DSTPConfig;
+import dstp.config.TestConfigBuilder;
+import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
-import crypto.CryptoProvider;
-import shp.MessageType;
-import shp.SHPPacket;
 import shp.client.ClientECCKeyPair;
 import shp.server.ServerECCKeyPair;
 import util.ByteUtils;
 import util.CryptoUtils;
 
-import java.security.*;
+import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.PublicKey;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static shp.SHPPacketFactory.GO_STRING;
+import static util.ByteUtils.hexToBytes;
+import static util.CryptoUtils.*;
 
 class SHPPacketFactoryTest {
 
@@ -163,5 +172,237 @@ class SHPPacketFactoryTest {
         assertThrows(RuntimeException.class, () ->
                 SHPPacketFactory.createTypeFivePacket(nonce5, mockCryptoProvider, symmetricKey, macKey)
         );
+    }
+
+    @Test
+    void testPacketOne() {
+        SHPPacket packet = SHPPacketFactory.createTypeOnePacket("testuser");
+        assertEquals(MessageType.ONE, packet.getType());
+        assertArrayEquals("testuser".getBytes(), packet.getData());
+    }
+
+    @Test
+    void testPacketTwo() {
+        SHPPacket packet = SHPPacketFactory.createTypeTwoPacket();
+        assertEquals(MessageType.TWO, packet.getType());
+        assertEquals(48, packet.getData().length);
+
+        byte[] data = packet.getData();
+        ByteBuffer nonceBuffer = ByteBuffer.wrap(data);
+        byte[] nonce1 = new byte[16];
+        nonceBuffer.get(nonce1);
+        byte[] nonce2 = new byte[16];
+        nonceBuffer.get(nonce2);
+        byte[] nonce3 = new byte[16];
+        nonceBuffer.get(nonce3);
+
+        // ensure nonces are unique
+        assertNotEquals(ByteBuffer.wrap(nonce1).getLong(), ByteBuffer.wrap(nonce2).getLong());
+        assertNotEquals(ByteBuffer.wrap(nonce2).getLong(), ByteBuffer.wrap(nonce3).getLong());
+        assertNotEquals(ByteBuffer.wrap(nonce3).getLong(), ByteBuffer.wrap(nonce1).getLong());
+
+        packet = SHPPacketFactory.createTypeTwoPacket();
+        data = packet.getData();
+        nonceBuffer = ByteBuffer.wrap(data);
+        byte[] nonce1a = new byte[16];
+        nonceBuffer.get(nonce1a);
+        byte[] nonce2a = new byte[16];
+        nonceBuffer.get(nonce2a);
+        byte[] nonce3a = new byte[16];
+        nonceBuffer.get(nonce3a);
+
+        // ensure new nonces are created each time
+        assertNotEquals(ByteBuffer.wrap(nonce1).getLong(), ByteBuffer.wrap(nonce1a).getLong());
+        assertNotEquals(ByteBuffer.wrap(nonce2).getLong(), ByteBuffer.wrap(nonce2a).getLong());
+        assertNotEquals(ByteBuffer.wrap(nonce3).getLong(), ByteBuffer.wrap(nonce3a).getLong());
+    }
+
+    @Test
+    void testPacketThree() throws GeneralSecurityException {
+        try (MockedStatic<ClientECCKeyPair> clientEccMock = Mockito.mockStatic(ClientECCKeyPair.class)) {
+            KeyPair clientKeyPair = CryptoUtils.generateECCKeyPair();
+            // Setup mocks
+            ClientECCKeyPair mockClientEccKeyPair = mock(ClientECCKeyPair.class);
+            when(ClientECCKeyPair.getInstance()).thenReturn(mockClientEccKeyPair);
+            when(mockClientEccKeyPair.getPrivate()).thenReturn(clientKeyPair.getPrivate());
+
+            String request = "test_request";
+            String username = "test_user";
+            byte[] nonce3 = CryptoUtils.generateNonce(16);
+            int udpPort = 12345;
+            String password = "password";
+            Key pbeKey = CryptoUtils.generatePBEKey(password.toCharArray());
+
+            SHPPacket packet = SHPPacketFactory.createTypeThreePacket(request, username, Arrays.copyOf(nonce3, nonce3.length), udpPort, pbeKey);
+            assertEquals(MessageType.THREE, packet.getType());
+
+            byte[] data = packet.getData();
+            ByteBuffer dataBuffer = ByteBuffer.wrap(data);
+
+            // unwrap data
+            // encrypted data
+            int encryptedDataLength = dataBuffer.getInt();
+            byte[] encryptedData = new byte[encryptedDataLength];
+            dataBuffer.get(encryptedData);
+            // signature
+            int signatureLength = dataBuffer.getInt();
+            byte[] signature = new byte[signatureLength];
+            dataBuffer.get(signature);
+            // mac
+            int macLength = dataBuffer.getInt();
+            byte[] mac = new byte[macLength];
+            dataBuffer.get(mac);
+
+            // verify mac
+            assertTrue(CryptoUtils.verifyMac(encryptedData, mac, pbeKey.getEncoded()));
+
+            // verify signature
+            assertTrue(CryptoUtils.verifyECDSASignature(encryptedData, signature, clientKeyPair.getPublic()));
+
+            // decrypt data
+            byte[] decryptedData = PBEDecrypt(encryptedData, pbeKey);
+            dataBuffer = ByteBuffer.wrap(decryptedData);
+
+            // extract data
+            byte[] requestBytes = new byte[request.length()];
+            dataBuffer.get(requestBytes);
+            String reconstructedRequest = new String(requestBytes);
+            assertEquals(request, reconstructedRequest);
+            byte[] userIDBytes = new byte[username.length()];
+            dataBuffer.get(userIDBytes);
+            String reconstructedUsername = new String(userIDBytes);
+            assertEquals(username, reconstructedUsername);
+            byte[] nonce3Plus1 = new byte[16];
+            dataBuffer.get(nonce3Plus1);
+            assertTrue(ByteUtils.isExactlyOnelarger(nonce3, nonce3Plus1));
+            byte[] nonce4 = new byte[16];
+            dataBuffer.get(nonce4);
+            assertNotEquals(ByteBuffer.wrap(nonce3).getLong(), ByteBuffer.wrap(nonce4).getLong());
+            int reconstructedUDPPort = dataBuffer.getInt();
+            assertEquals(udpPort, reconstructedUDPPort);
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testPacketFour() {
+        try (MockedStatic<ServerECCKeyPair> serverEccMock = Mockito.mockStatic(ServerECCKeyPair.class)) {
+            KeyPair serverKeyPair = CryptoUtils.generateECCKeyPair();
+            KeyPair clientKeyPair = CryptoUtils.generateECCKeyPair();
+
+            // Setup mocks
+            ServerECCKeyPair mockServerEccKeyPair = mock(ServerECCKeyPair.class);
+            when(ServerECCKeyPair.getInstance()).thenReturn(mockServerEccKeyPair);
+            when(mockServerEccKeyPair.getPrivate()).thenReturn(serverKeyPair.getPrivate());
+
+            // Prepare test data
+            String requestConfirmation = "confirmed";
+            byte[] nonce4 = generateNonce(16);
+            String cryptoConfigString = new TestConfigBuilder()
+                    .generateSymmetricKey("AES/GCM/NoPadding", 256)
+                    .generateIv(16)
+                    .setIntegrity("hash")
+                    .setH("SHA-256")
+                    .build().serialize();
+            byte[] cryptoConfig = cryptoConfigString.getBytes();
+            String password = "password";
+            Key pbeKey = CryptoUtils.generatePBEKey(password.toCharArray());
+
+            SHPPacket packet = SHPPacketFactory.createTypeFourPacket(requestConfirmation, Arrays.copyOf(nonce4, nonce4.length), clientKeyPair.getPublic(), pbeKey, cryptoConfig);
+
+            assertNotNull(packet);
+            assertEquals(MessageType.FOUR, packet.getType());
+
+            byte[] data = packet.getData();
+            ByteBuffer dataBuffer = ByteBuffer.wrap(data);
+
+            // encrypted data
+            int encryptedDataLength = dataBuffer.getInt();
+            byte[] encryptedData = new byte[encryptedDataLength];
+            dataBuffer.get(encryptedData);
+            // signature
+            int signatureLength = dataBuffer.getInt();
+            byte[] signature = new byte[signatureLength];
+            dataBuffer.get(signature);
+            // mac
+            int macLength = dataBuffer.getInt();
+            byte[] mac = new byte[macLength];
+            dataBuffer.get(mac);
+
+            // verify mac
+            assertTrue(CryptoUtils.verifyMac(encryptedData, mac, pbeKey.getEncoded()));
+
+            // verify signature
+            assertTrue(CryptoUtils.verifyECDSASignature(encryptedData, signature, serverKeyPair.getPublic()));
+
+            // decrypt data
+            byte[] decryptedData = ECIESDecrypt(encryptedData, clientKeyPair.getPrivate());
+            dataBuffer = ByteBuffer.wrap(decryptedData);
+
+            // extract data
+            int requestConfirmationLength = dataBuffer.getInt();
+            byte[] requestConfirmationBytes = new byte[requestConfirmationLength];
+            dataBuffer.get(requestConfirmationBytes);
+            String reconstructedRequestConfirmation = new String(requestConfirmationBytes);
+            assertEquals(requestConfirmation, reconstructedRequestConfirmation);
+            byte[] nonce4Plus1 = new byte[16];
+            dataBuffer.get(nonce4Plus1);
+            assertTrue(ByteUtils.isExactlyOnelarger(nonce4, nonce4Plus1));
+            byte[] nonce5 = new byte[16];
+            dataBuffer.get(nonce5);
+            assertNotEquals(0, ByteUtils.compareByteArrayNumbers(nonce5, nonce4));
+            byte[] cryptoConfigBytes = new byte[dataBuffer.remaining()];
+            dataBuffer.get(cryptoConfigBytes);
+            String reconstructedCryptoConfigString = new String(cryptoConfigBytes);
+            assertEquals(cryptoConfigString, reconstructedCryptoConfigString);
+
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testPacketFive() throws GeneralSecurityException, InvalidCipherTextException {
+        DSTPConfig cryptoConfig = new TestConfigBuilder()
+                .generateSymmetricKey("AES/GCM/NoPadding", 256)
+                .generateIv(16)
+                .setIntegrity("hash")
+                .setH("SHA-256")
+                .build();
+        CryptoProvider cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(cryptoConfig);
+        byte[] nonce5 = generateNonce(16);
+
+        SHPPacket packet = SHPPacketFactory.createTypeFivePacket(Arrays.copyOf(nonce5, nonce5.length), cryptoProvider, hexToBytes(cryptoConfig.getSymmetric_key()), hexToBytes(cryptoConfig.getMackey()));
+
+        assertNotNull(packet);
+        assertEquals(MessageType.FIVE, packet.getType());
+
+        byte[] data = packet.getData();
+        ByteBuffer dataBuffer = ByteBuffer.wrap(data);
+
+        // encrypted data
+        int encryptedDataLength = dataBuffer.getInt();
+        byte[] encryptedData = new byte[encryptedDataLength];
+        dataBuffer.get(encryptedData);
+        // mac
+        int macLength = dataBuffer.getInt();
+        byte[] mac = new byte[macLength];
+        dataBuffer.get(mac);
+
+        // verify mac
+        assertTrue(cryptoProvider.verifyIntegrityCheck(encryptedData, mac, hexToBytes(cryptoConfig.getMackey())));
+
+        // decrypt data
+        byte[] decryptedData = cryptoProvider.decrypt(encryptedData, hexToBytes(cryptoConfig.getSymmetric_key()));
+        dataBuffer = ByteBuffer.wrap(decryptedData);
+        int goStringLength = decryptedData.length - 16; // only nonce5Plus1
+        byte[] goStringBytes = new byte[goStringLength];
+        dataBuffer.get(goStringBytes);
+        String goString = new String(goStringBytes);
+        assertEquals(GO_STRING, goString);
+        byte[] nonce5Plus1 = new byte[16];
+        dataBuffer.get(nonce5Plus1);
+        assertTrue(ByteUtils.isExactlyOnelarger(nonce5, nonce5Plus1));
     }
 }

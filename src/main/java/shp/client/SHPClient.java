@@ -135,7 +135,7 @@ public class SHPClient {
             }
 
             // decrypt data
-            byte[] decryptedData = PBEDecrypt(encryptedData, ClientECCKeyPair.getInstance().getPrivate());
+            byte[] decryptedData = ECIESDecrypt(encryptedData, ClientECCKeyPair.getInstance().getPrivate());
             ByteBuffer dataBuffer = ByteBuffer.wrap(decryptedData);
 
             // extract data

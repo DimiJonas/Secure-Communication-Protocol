@@ -15,7 +15,7 @@ public class SHPPacket {
     private final MessageType type;
     protected byte[] payload;
 
-    public SHPPacket(byte[] payload, MessageType type){
+    public SHPPacket(byte[] payload, MessageType type) {
         this.payload = payload;
         this.type = type;
     }
@@ -39,7 +39,7 @@ public class SHPPacket {
         return buffer.array();
     }
 
-    public SHPPacket deserialize(byte[] data, int offset, int length){
+    public SHPPacket deserialize(byte[] data, int offset, int length) {
         ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
 
         if (buffer.remaining() < length) {

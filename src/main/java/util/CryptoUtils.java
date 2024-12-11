@@ -32,7 +32,7 @@ public class CryptoUtils {
         Mac mac = Mac.getInstance(algorithm, new BouncyCastleProvider());
 
         SecretKeySpec secretKey = new SecretKeySpec(key, algorithm);
-        if (algorithm.contains("gmac")) {
+        if (algorithm.toLowerCase().contains("gmac")) {
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             mac.init(secretKey, ivSpec);
         } else {

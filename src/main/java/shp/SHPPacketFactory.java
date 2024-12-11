@@ -18,6 +18,8 @@ import static util.CryptoUtils.*;
 
 public class SHPPacketFactory {
 
+    public static final String GO_STRING = "GO";
+
     public static SHPPacket createTypeOnePacket(String userid) {
         if (userid == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -103,8 +105,7 @@ public class SHPPacketFactory {
 
     public static SHPPacket createTypeFivePacket(byte[] nonce5, CryptoProvider cryptoProvider, byte[] symmetricKey, byte[] macKey) {
         try {
-            String goString = "GO";
-            byte[] goBytes = goString.getBytes();
+            byte[] goBytes = GO_STRING.getBytes();
             incrementByteNumber(nonce5);
 
             int dataLength = goBytes.length + nonce5.length;
