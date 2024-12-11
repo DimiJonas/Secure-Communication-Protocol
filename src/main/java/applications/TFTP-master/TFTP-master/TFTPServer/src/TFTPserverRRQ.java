@@ -1,3 +1,4 @@
+import dstp.config.DSTPConfig;
 import dstp.socket.DSTPSocket;
 
 import java.net.*;
@@ -17,11 +18,11 @@ class TFTPserverRRQ extends Thread {
 	protected String fileName;
 
 	// initialize read request
-	public TFTPserverRRQ(TFTPread request) throws TftpException {
+	public TFTPserverRRQ(TFTPread request, DSTPConfig cryptoConfig) throws TftpException {
 		try {
 			req = request;
 			//open new socket with random port num for tranfer
-			sock = new DSTPSocket("../../../../../../resources/pa1/cryptoconfig.txt");
+			sock = new DSTPSocket(cryptoConfig);
 //			sock = new DatagramSocket();
 			sock.setSoTimeout(1000);
 			fileName = request.fileName();

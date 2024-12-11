@@ -25,7 +25,7 @@ public class SHPPacket {
     }
 
     public static MessageType extractMessageType(byte[] header) {
-        return MessageType.valueOf(String.valueOf(header[1]));
+        return MessageType.getTypeFromString(String.valueOf(header[1]));
     }
 
     public byte[] serialize() {

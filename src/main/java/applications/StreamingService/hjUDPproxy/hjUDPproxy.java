@@ -2,6 +2,8 @@ package applications.StreamingService.hjUDPproxy;/* hjUDPproxy, for use in 2024
  */
 
 import dstp.socket.DSTPSocket;
+import shp.SHPResult;
+import shp.client.SHPClient;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -18,30 +20,26 @@ import java.util.stream.Collectors;
 
 class hjUDPproxy {
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.out.println("Use: hjUDPproxy <endpoint1> <endpoint2>");
-            System.out.println("<endpoint1>: endpoint for receiving stream");
-            System.out.println("<endpoint2>: endpoint of media player");
-
-            System.out.println("Ex: hjUDPproxy 224.2.2.2:9000  127.0.0.1:8888");
-            System.out.println("Ex: hjUDPproxy 127.0.0.1:10000 127.0.0.1:8888");
+        if (args.length != 6) {
+            System.out.println("Ex with shp: hjUDPproxy testuser test 127.0.0.1:45678 monsters.dat 10000 127.0.0.1:8888");
+            System.out.println("Ex with shp: hjUDPproxy <username> <password> <tcp_port> <movie> <udp_port> <player_port>");
             System.exit(0);
         }
 
-        String remote = args[0]; // receive mediastream from this rmote endpoint
-        String destinations = args[1]; //resend mediastream to this destination endpoint
+        // use SHP handshake with DSTP
+        InetSocketAddress shpServerAddress = parseSocketAddress(args[2]);
+        SHPResult shpResult = new SHPClient(shpServerAddress.getHostString(), shpServerAddress.getPort(), args[0], args[1], args[3], Integer.parseInt(args[4])).executeHandshake();
 
-
-        SocketAddress inSocketAddress = parseSocketAddress(remote);
-        Set<SocketAddress> outSocketAddressSet = Arrays.stream(destinations.split(",")).map(s -> parseSocketAddress(s)).collect(Collectors.toSet());
+        SocketAddress inSocketAddress = parseSocketAddress(shpResult.host() + ":" + shpResult.udpPort());
+        Set<SocketAddress> outSocketAddressSet = Arrays.stream(args[5].split(",")).map(s -> parseSocketAddress(s)).collect(Collectors.toSet());
 
         // Manage this according to your required setup, namely
         // if you want to use unicast or multicast channels
 
         // If listen a remote unicast server try the remote config
         // uncomment the following line
-
-        DatagramSocket inSocket = new DSTPSocket(inSocketAddress, "src/main/resources/pa1/cryptoconfig.txt");
+        DatagramSocket inSocket;
+        inSocket = new DSTPSocket(inSocketAddress, shpResult.config());
 //        DatagramSocket inSocket = new DatagramSocket(inSocketAddress);
 
         // If listen a remote multicast server using IP Multicasting

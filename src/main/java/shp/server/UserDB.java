@@ -10,7 +10,8 @@ import static util.CryptoUtils.generatePasswordHash;
 
 public class UserDB {
     public static final String SALT = "some salt";
-    private static final String DB_PATH = "src/main/resources/pa2/server/userdatabase.txt";
+    public static final String DEFAULT_DB_PATH = "src/main/resources/pa2/server/userdatabase.txt";
+    private static String bdPath;
     private static final String DB_DELIMITER = ":";
 
     private final Map<String, AuthRecord> db;
@@ -18,7 +19,7 @@ public class UserDB {
 
     private UserDB() {
         db = new HashMap<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(DB_PATH))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(getDbPath()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
@@ -34,7 +35,7 @@ public class UserDB {
                 db.put(parts[0], new AuthRecord(parts[0], parts[1], parts[2], parts[3]));
             }
         } catch (IOException e) {
-            throw new RuntimeException(format("Could not read database file '%s'%n", DB_PATH), e);
+            throw new RuntimeException(format("Could not read database file '%s'%n", getDbPath()), e);
         }
     }
 
@@ -43,6 +44,14 @@ public class UserDB {
             instance = new UserDB();
         }
         return instance;
+    }
+
+    public static String getDbPath() {
+        return bdPath != null ? bdPath : DEFAULT_DB_PATH;
+    }
+
+    public static void setDbPath(String path) {
+        bdPath = path;
     }
 
     public AuthRecord getRecord(String userid) {
@@ -71,14 +80,14 @@ public class UserDB {
             return null;
         }
 
-        Random random = new Random();
+//        Random random = new Random();
 //        String salt = String.valueOf(random.nextLong());
         String salt = SALT;
         byte[] passwordhashBytes = generatePasswordHash(password, salt);
         AuthRecord record = new AuthRecord(userid, bytesToHex(passwordhashBytes), salt, pubkey);
         db.put(userid, record);
 
-        try (FileWriter fileWriter = new FileWriter(DB_PATH, true)) {
+        try (FileWriter fileWriter = new FileWriter(DEFAULT_DB_PATH, true)) {
             fileWriter.write(record.serialize() + System.lineSeparator());
             System.out.printf("User '%s' added to database%n%n", userid);
             return record;
@@ -97,7 +106,7 @@ public class UserDB {
         try {
             // Read all lines from the file
             List<String> lines = new ArrayList<>();
-            BufferedReader reader = new BufferedReader(new FileReader(DB_PATH));
+            BufferedReader reader = new BufferedReader(new FileReader(DEFAULT_DB_PATH));
             String currentLine;
 
             while ((currentLine = reader.readLine()) != null) {
@@ -110,7 +119,7 @@ public class UserDB {
             reader.close();
 
             // Write the updated lines back to the file
-            BufferedWriter writer = new BufferedWriter(new FileWriter(DB_PATH));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(DEFAULT_DB_PATH));
             for (String line : lines) {
                 writer.write(line);
                 writer.newLine();

@@ -45,6 +45,30 @@ public class DSTPSocket extends MulticastSocket {
         this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
     }
 
+    public DSTPSocket(final DSTPConfig config) throws IOException {
+        super();
+        this.config = config;
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
+    }
+
+    public DSTPSocket(final InetSocketAddress inetSocketAddress, final DSTPConfig config) throws IOException {
+        super(inetSocketAddress);
+        this.config = config;
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
+    }
+
+    public DSTPSocket(int port, final DSTPConfig config) throws IOException {
+        super(port);
+        this.config = config;
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
+    }
+
+    public DSTPSocket(SocketAddress bindaddr, final DSTPConfig config) throws IOException {
+        super(bindaddr);
+        this.config = config;
+        this.cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(config);
+    }
+
     @Override
     public void send(DatagramPacket packet) throws IOException {
         try {

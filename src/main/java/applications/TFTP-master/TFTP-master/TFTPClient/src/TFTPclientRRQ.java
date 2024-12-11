@@ -1,5 +1,7 @@
 
 import dstp.socket.DSTPSocket;
+import shp.SHPResult;
+import shp.client.SHPClient;
 
 import java.net.*;
 import java.security.MessageDigest;
@@ -12,13 +14,14 @@ class TFTPclientRRQ {
 	protected String fileName;
 	protected String dataMode;
 
-	public TFTPclientRRQ(InetAddress ip, String name, String mode) {
+	public TFTPclientRRQ(InetAddress ip, String name, String mode, String username, String password, int port) {
 		server = ip;
 		fileName = name;
 		dataMode = mode;
 
 		try {// Create socket and open output file
-			DatagramSocket sock = new DSTPSocket("../../../../../../resources/pa1/cryptoconfig.txt");
+			SHPResult shpResult = new SHPClient(server.getHostAddress(), 45678, username, password, name, port, "../../../../../../resources/pa2/client/ClientECCKeyPair.sec", "../../../../../../resources/pa2/client/ServerECCPubKey.txt").executeHandshake();
+			DatagramSocket sock = new DSTPSocket(shpResult.config());
 //			DatagramSocket sock = new DatagramSocket();
 			sock.setSoTimeout(2000); // set time out to 2s
 

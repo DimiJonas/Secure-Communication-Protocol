@@ -6,6 +6,8 @@ package applications.StreamingService.hjStreamServer;/*
 */
 
 import dstp.socket.DSTPSocket;
+import shp.SHPResult;
+import shp.server.SHPServer;
 
 import java.io.*;
 import java.net.*;
@@ -13,26 +15,25 @@ import java.net.*;
 class hjStreamServer {
 
 	static public void main( String []args ) throws Exception {
-	        if (args.length != 3)
+	        if (args.length != 0)
 	        {
-	         System.out.println("Use: hjStramSrver <movie> <ip-multicast-address> <port>");
-	         System.out.println("Ex: hjStreamSrver  <movie> 224.2.2.2 9000");		 		 
-	         System.out.println(" or: hjStreamSrver  <movie> <ip-unicast-address> <port>");
-	         System.out.println("Ex: hjStreamSrver  <movie> 127.0.0.1 10000");		 		 		 
+	         System.out.println("Ex with shp: hjStreamServer");
 
-		 
 	         System.exit(-1);
 	         }
-      
+
+		// use SHP handshake with DSTP
+		SHPResult shpResult = new SHPServer(45678).executeHandshake();
+
+		DatagramSocket s = new DSTPSocket(shpResult.config());
+		String movie = shpResult.request();
+		InetSocketAddress addr = new InetSocketAddress(shpResult.host(), shpResult.udpPort());
 		int size;
 		int count = 0;
  		long time;
-		DataInputStream g = new DataInputStream( new FileInputStream(args[0]) );
+		DataInputStream g = new DataInputStream( new FileInputStream(movie) );
 		byte[] buff = new byte[65000];
-		DatagramSocket s = new DSTPSocket("src/main/resources/pa1/cryptoconfig.txt");
-//		DatagramSocket s = new DatagramSocket();
-		InetSocketAddress addr =
-		    new InetSocketAddress(args[1],Integer.parseInt(args[2]));
+
 		DatagramPacket p=new DatagramPacket(buff,buff.length,addr);
 		long t0 = System.nanoTime(); // tempo de referencia
 		long q0 = 0;

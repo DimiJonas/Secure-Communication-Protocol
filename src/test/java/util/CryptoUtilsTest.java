@@ -9,6 +9,9 @@ import java.security.*;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static util.ByteUtils.bytesToHex;
+import static util.CryptoUtils.generatePBEKey;
+import static util.CryptoUtils.generatePasswordHash;
 
 class CryptoUtilsTest {
 
@@ -87,10 +90,19 @@ class CryptoUtilsTest {
     void testGeneratePasswordHash() throws NoSuchAlgorithmException {
         String password = "mypassword";
         String salt = "mysalt";
-        byte[] passwordHash = CryptoUtils.generatePasswordHash(password, salt);
+        byte[] passwordHash = generatePasswordHash(password, salt);
 
         assertNotNull(passwordHash);
         assertEquals(32, passwordHash.length); // SHA-256 hash
+    }
+
+    @Test
+    void testGeneratePBEKey_isDeterministic() throws GeneralSecurityException {
+        byte[] passwordHash = generatePasswordHash("testpassword", "SHP");
+        String passwordHashString = bytesToHex(passwordHash);
+        Key pbeKey = generatePBEKey(passwordHashString.toCharArray());
+        Key pbeKey2 = generatePBEKey(passwordHashString.toCharArray());
+        assertArrayEquals(pbeKey.getEncoded(), pbeKey2.getEncoded());
     }
 
     @Test

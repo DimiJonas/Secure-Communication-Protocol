@@ -15,10 +15,7 @@ import util.ByteUtils;
 import util.CryptoUtils;
 
 import java.nio.ByteBuffer;
-import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.KeyPair;
-import java.security.PublicKey;
+import java.security.*;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -69,7 +66,10 @@ class SHPPacketFactoryTest {
     @Test
     void testCreateTypeTwoPacket() {
         try (MockedStatic<ByteUtils> byteUtilsMockedStatic = Mockito.mockStatic(ByteUtils.class)) {
-            SHPPacket packet = SHPPacketFactory.createTypeTwoPacket();
+            byte[] nonce1 = generateNonce(16);
+            byte[] nonce2 = generateNonce(16);
+            byte[] nonce3 = generateNonce(16);
+            SHPPacket packet = SHPPacketFactory.createTypeTwoPacket(nonce1, nonce2, nonce3);
 
             assertNotNull(packet);
             assertEquals(MessageType.TWO, packet.getType());
@@ -96,9 +96,10 @@ class SHPPacketFactoryTest {
             String request = "test_request";
             String userID = "test_user";
             byte[] nonce3 = new byte[16];
+            byte[] nonce4 = generateNonce(16);
             int udpPort = 8080;
 
-            SHPPacket packet = SHPPacketFactory.createTypeThreePacket(request, userID, nonce3, udpPort, pbeKey);
+            SHPPacket packet = SHPPacketFactory.createTypeThreePacket(request, userID, nonce3, nonce4, udpPort, pbeKey);
 
             assertNotNull(packet);
             assertEquals(MessageType.THREE, packet.getType());
@@ -126,9 +127,10 @@ class SHPPacketFactoryTest {
             // Prepare test data
             String requestConfirmation = "confirmed";
             byte[] nonce4 = new byte[16];
+            byte[] nonce5 = generateNonce(16);
             byte[] cryptoConfig = new byte[32];
 
-            SHPPacket packet = SHPPacketFactory.createTypeFourPacket(requestConfirmation, nonce4, clientPublicKey, pbeKey, cryptoConfig);
+            SHPPacket packet = SHPPacketFactory.createTypeFourPacket(requestConfirmation, nonce4, nonce5, clientPublicKey, pbeKey, cryptoConfig);
 
             assertNotNull(packet);
             assertEquals(MessageType.FOUR, packet.getType());
@@ -182,43 +184,37 @@ class SHPPacketFactoryTest {
     }
 
     @Test
-    void testPacketTwo() {
-        SHPPacket packet = SHPPacketFactory.createTypeTwoPacket();
+    void testPacketTwo() throws NoSuchAlgorithmException {
+        byte[] nonce1 = generateNonce(16);
+        byte[] nonce2 = generateNonce(16);
+        byte[] nonce3 = generateNonce(16);
+
+        SHPPacket packet = SHPPacketFactory.createTypeTwoPacket(nonce1, nonce2, nonce3);
         assertEquals(MessageType.TWO, packet.getType());
         assertEquals(48, packet.getData().length);
 
         byte[] data = packet.getData();
         ByteBuffer nonceBuffer = ByteBuffer.wrap(data);
-        byte[] nonce1 = new byte[16];
-        nonceBuffer.get(nonce1);
-        byte[] nonce2 = new byte[16];
-        nonceBuffer.get(nonce2);
-        byte[] nonce3 = new byte[16];
-        nonceBuffer.get(nonce3);
+        byte[] reconstructedNonce1 = new byte[16];
+        nonceBuffer.get(reconstructedNonce1);
+        byte[] reconstructedNonce2 = new byte[16];
+        nonceBuffer.get(reconstructedNonce2);
+        byte[] reconstructedNonce3 = new byte[16];
+        nonceBuffer.get(reconstructedNonce3);
 
         // ensure nonces are unique
-        assertNotEquals(ByteBuffer.wrap(nonce1).getLong(), ByteBuffer.wrap(nonce2).getLong());
-        assertNotEquals(ByteBuffer.wrap(nonce2).getLong(), ByteBuffer.wrap(nonce3).getLong());
-        assertNotEquals(ByteBuffer.wrap(nonce3).getLong(), ByteBuffer.wrap(nonce1).getLong());
-
-        packet = SHPPacketFactory.createTypeTwoPacket();
-        data = packet.getData();
-        nonceBuffer = ByteBuffer.wrap(data);
-        byte[] nonce1a = new byte[16];
-        nonceBuffer.get(nonce1a);
-        byte[] nonce2a = new byte[16];
-        nonceBuffer.get(nonce2a);
-        byte[] nonce3a = new byte[16];
-        nonceBuffer.get(nonce3a);
+        assertNotEquals(0, ByteUtils.compareByteArrayNumbers(nonce1, nonce2));
+        assertNotEquals(0, ByteUtils.compareByteArrayNumbers(nonce1, nonce3));
+        assertNotEquals(0, ByteUtils.compareByteArrayNumbers(nonce3, nonce2));
 
         // ensure new nonces are created each time
-        assertNotEquals(ByteBuffer.wrap(nonce1).getLong(), ByteBuffer.wrap(nonce1a).getLong());
-        assertNotEquals(ByteBuffer.wrap(nonce2).getLong(), ByteBuffer.wrap(nonce2a).getLong());
-        assertNotEquals(ByteBuffer.wrap(nonce3).getLong(), ByteBuffer.wrap(nonce3a).getLong());
+        assertEquals(0, ByteUtils.compareByteArrayNumbers(nonce1, reconstructedNonce1));
+        assertEquals(0, ByteUtils.compareByteArrayNumbers(nonce2, reconstructedNonce2));
+        assertEquals(0, ByteUtils.compareByteArrayNumbers(nonce3, reconstructedNonce3));
     }
 
     @Test
-    void testPacketThree() throws GeneralSecurityException {
+    void testPacketThree() {
         try (MockedStatic<ClientECCKeyPair> clientEccMock = Mockito.mockStatic(ClientECCKeyPair.class)) {
             KeyPair clientKeyPair = CryptoUtils.generateECCKeyPair();
             // Setup mocks
@@ -229,11 +225,12 @@ class SHPPacketFactoryTest {
             String request = "test_request";
             String username = "test_user";
             byte[] nonce3 = CryptoUtils.generateNonce(16);
+            byte[] nonce4 = CryptoUtils.generateNonce(16);
             int udpPort = 12345;
             String password = "password";
             Key pbeKey = CryptoUtils.generatePBEKey(password.toCharArray());
 
-            SHPPacket packet = SHPPacketFactory.createTypeThreePacket(request, username, Arrays.copyOf(nonce3, nonce3.length), udpPort, pbeKey);
+            SHPPacket packet = SHPPacketFactory.createTypeThreePacket(request, username, nonce3, nonce4, udpPort, pbeKey);
             assertEquals(MessageType.THREE, packet.getType());
 
             byte[] data = packet.getData();
@@ -275,9 +272,9 @@ class SHPPacketFactoryTest {
             byte[] nonce3Plus1 = new byte[16];
             dataBuffer.get(nonce3Plus1);
             assertTrue(ByteUtils.isExactlyOnelarger(nonce3, nonce3Plus1));
-            byte[] nonce4 = new byte[16];
-            dataBuffer.get(nonce4);
-            assertNotEquals(ByteBuffer.wrap(nonce3).getLong(), ByteBuffer.wrap(nonce4).getLong());
+            byte[] reconstructedNonce4 = new byte[16];
+            dataBuffer.get(reconstructedNonce4);
+            assertEquals(0, ByteUtils.compareByteArrayNumbers(nonce4, reconstructedNonce4));
             int reconstructedUDPPort = dataBuffer.getInt();
             assertEquals(udpPort, reconstructedUDPPort);
         } catch (Exception e) {
@@ -299,6 +296,7 @@ class SHPPacketFactoryTest {
             // Prepare test data
             String requestConfirmation = "confirmed";
             byte[] nonce4 = generateNonce(16);
+            byte[] nonce5 = generateNonce(16);
             String cryptoConfigString = new TestConfigBuilder()
                     .generateSymmetricKey("AES/GCM/NoPadding", 256)
                     .generateIv(16)
@@ -309,7 +307,7 @@ class SHPPacketFactoryTest {
             String password = "password";
             Key pbeKey = CryptoUtils.generatePBEKey(password.toCharArray());
 
-            SHPPacket packet = SHPPacketFactory.createTypeFourPacket(requestConfirmation, Arrays.copyOf(nonce4, nonce4.length), clientKeyPair.getPublic(), pbeKey, cryptoConfig);
+            SHPPacket packet = SHPPacketFactory.createTypeFourPacket(requestConfirmation, nonce4, nonce5, clientKeyPair.getPublic(), pbeKey, cryptoConfig);
 
             assertNotNull(packet);
             assertEquals(MessageType.FOUR, packet.getType());
@@ -349,9 +347,9 @@ class SHPPacketFactoryTest {
             byte[] nonce4Plus1 = new byte[16];
             dataBuffer.get(nonce4Plus1);
             assertTrue(ByteUtils.isExactlyOnelarger(nonce4, nonce4Plus1));
-            byte[] nonce5 = new byte[16];
-            dataBuffer.get(nonce5);
-            assertNotEquals(0, ByteUtils.compareByteArrayNumbers(nonce5, nonce4));
+            byte[] reconstructedNonce5 = new byte[16];
+            dataBuffer.get(reconstructedNonce5);
+            assertEquals(0, ByteUtils.compareByteArrayNumbers(reconstructedNonce5, nonce5));
             byte[] cryptoConfigBytes = new byte[dataBuffer.remaining()];
             dataBuffer.get(cryptoConfigBytes);
             String reconstructedCryptoConfigString = new String(cryptoConfigBytes);

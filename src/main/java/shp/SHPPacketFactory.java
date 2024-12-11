@@ -11,8 +11,10 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.util.Arrays;
 
 import static shp.MessageType.*;
+import static util.ByteUtils.bytesToHex;
 import static util.ByteUtils.incrementByteNumber;
 import static util.CryptoUtils.*;
 
@@ -30,37 +32,29 @@ public class SHPPacketFactory {
         return new SHPPacket(userid.getBytes(), ONE);
     }
 
-    public static SHPPacket createTypeTwoPacket() {
-        try {
-            byte[] nonce1 = generateNonce(16);
-            byte[] nonce2 = generateNonce(16);
-            byte[] nonce3 = generateNonce(16);
+    public static SHPPacket createTypeTwoPacket(byte[] nonce1, byte[] nonce2, byte[] nonce3) {
+        ByteBuffer buffer = ByteBuffer.allocate(nonce1.length + nonce2.length + nonce3.length);
+        buffer.put(nonce1);
+        buffer.put(nonce2);
+        buffer.put(nonce3);
 
-            ByteBuffer buffer = ByteBuffer.allocate(nonce1.length + nonce2.length + nonce3.length);
-            buffer.put(nonce1);
-            buffer.put(nonce2);
-            buffer.put(nonce3);
-
-            return new SHPPacket(buffer.array(), TWO);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to generate nonces for SHP type 2 packet", e);
-        }
+        return new SHPPacket(buffer.array(), TWO);
     }
 
-    public static SHPPacket createTypeThreePacket(String request, String userID, byte[] nonce3, int udpPort, Key pbeKey) {
+    public static SHPPacket createTypeThreePacket(String request, String userID, byte[] nonce3, byte[] nonce4, int udpPort, Key pbeKey) {
         try {
             // collect data parts
             byte[] requestBytes = request.getBytes();
             byte[] userIDBytes = userID.getBytes();
-            incrementByteNumber(nonce3);
-            byte[] nonce4 = generateNonce(16);
+            byte[] nonce3Plus1 = Arrays.copyOf(nonce3, nonce3.length);
+            incrementByteNumber(nonce3Plus1);
 
             // build data
-            int dataLength = requestBytes.length + userIDBytes.length + nonce3.length + nonce4.length + 4; // 4 bytes for udpPort
+            int dataLength = requestBytes.length + userIDBytes.length + nonce3Plus1.length + nonce4.length + 4; // 4 bytes for udpPort
             ByteBuffer dataBuffer = ByteBuffer.allocate(dataLength);
             dataBuffer.put(requestBytes);
             dataBuffer.put(userIDBytes);
-            dataBuffer.put(nonce3);
+            dataBuffer.put(nonce3Plus1);
             dataBuffer.put(nonce4);
             dataBuffer.putInt(udpPort);
             byte[] data = dataBuffer.array();
@@ -76,18 +70,18 @@ public class SHPPacketFactory {
         }
     }
 
-    public static SHPPacket createTypeFourPacket(String requestConfirmation, byte[] nonce4, PublicKey clientPubkey, Key pbeKey, byte[] cryptoConfig) {
+    public static SHPPacket createTypeFourPacket(String requestConfirmation, byte[] nonce4, byte[] nonce5, PublicKey clientPubkey, Key pbeKey, byte[] cryptoConfig) {
         try {
             // collect data parts
             byte[] requestConfirmationBytes = requestConfirmation.getBytes();
-            incrementByteNumber(nonce4);
-            byte[] nonce5 = generateNonce(16);
+            byte[] nonce4Plus1 = Arrays.copyOf(nonce4, nonce4.length);
+            incrementByteNumber(nonce4Plus1);
 
-            int dataLength = 4 + requestConfirmationBytes.length + nonce4.length + nonce5.length + cryptoConfig.length; // 4 bytes for request confirmation length
+            int dataLength = 4 + requestConfirmationBytes.length + nonce4Plus1.length + nonce5.length + cryptoConfig.length; // 4 bytes for request confirmation length
             ByteBuffer dataBuffer = ByteBuffer.allocate(dataLength);
             dataBuffer.putInt(requestConfirmation.length());
             dataBuffer.put(requestConfirmationBytes);
-            dataBuffer.put(nonce4);
+            dataBuffer.put(nonce4Plus1);
             dataBuffer.put(nonce5);
             dataBuffer.put(cryptoConfig);
             byte[] data = dataBuffer.array();
@@ -106,12 +100,13 @@ public class SHPPacketFactory {
     public static SHPPacket createTypeFivePacket(byte[] nonce5, CryptoProvider cryptoProvider, byte[] symmetricKey, byte[] macKey) {
         try {
             byte[] goBytes = GO_STRING.getBytes();
-            incrementByteNumber(nonce5);
+            byte[] nonce5Plus1 = Arrays.copyOf(nonce5, nonce5.length);
+            incrementByteNumber(nonce5Plus1);
 
-            int dataLength = goBytes.length + nonce5.length;
+            int dataLength = goBytes.length + nonce5Plus1.length;
             ByteBuffer dataBuffer = ByteBuffer.allocate(dataLength);
             dataBuffer.put(goBytes);
-            dataBuffer.put(nonce5);
+            dataBuffer.put(nonce5Plus1);
             byte[] data = dataBuffer.array();
 
             byte[] encryptedData = cryptoProvider.encrypt(data, symmetricKey);

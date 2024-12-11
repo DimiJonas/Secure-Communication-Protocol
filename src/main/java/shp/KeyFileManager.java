@@ -15,8 +15,7 @@ import static util.CryptoUtils.reconstructECCPrivateKeyFromBytes;
 import static util.CryptoUtils.reconstructECCPublicKeyFromBytes;
 
 public abstract class KeyFileManager {
-    protected static Pattern keyFilePattern = Pattern.compile("Curve: (?<curve>[a-zA-Z0-9-]+)\\nPrivateKey: (?<privkey>[a-zA-Z0-9]+)\\nPublicKey: (?<pubkey>a-zA-Z0-9]+)");
-    protected static KeyFileManager instance;
+    protected static Pattern keyFilePattern = Pattern.compile("Curve:\\s*(?<curve>[0-9a-zA-Z]+)\\s*PrivateKey:\\s*(?<privkey>[0-9a-fA-F]+)\\s*PublicKey:\\s*(?<pubkey>[0-9a-fA-F]+)");
 
     protected String curve;
     protected PrivateKey privkey;
@@ -35,7 +34,7 @@ public abstract class KeyFileManager {
             throw new RuntimeException(format("Could not read key file '%s'%n", keyFilePath), e);
         }
         Matcher matcher = keyFilePattern.matcher(fileContentString);
-        if (!matcher.matches()) {
+        if (!matcher.find()) {
             throw new RuntimeException(format("Could not parse key file '%s'%n", keyFilePath));
         }
         curve = matcher.group("curve");

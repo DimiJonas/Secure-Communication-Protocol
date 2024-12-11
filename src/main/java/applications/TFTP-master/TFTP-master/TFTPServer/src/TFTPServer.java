@@ -1,4 +1,7 @@
+import dstp.config.DSTPConfig;
 import dstp.socket.DSTPSocket;
+import shp.SHPResult;
+import shp.server.SHPServer;
 
 import java.net.*;
 import java.io.*;
@@ -9,7 +12,8 @@ public class TFTPServer {
 	public static void main(String argv[]) {
 		try {
 			//use port 6973
-			DatagramSocket sock = new DSTPSocket(6973, "../../../../../../resources/pa1/cryptoconfig.txt");
+			SHPResult shpResult = new SHPServer(Integer.parseInt(argv[0]), "../../../../../../resources/pa2/server/ciphersuite.conf", "../../../../../../resources/pa2/server/userdatabase.txt", "../../../../../../resources/pa2/server/ServerECCKeyPair.sec").executeHandshake();
+			DatagramSocket sock = new DSTPSocket(shpResult.udpPort(), shpResult.config());
 //			DatagramSocket sock = new DatagramSocket(6973);
 			System.out.println("Server Ready.  Port:  " + sock.getLocalPort());
 
@@ -19,12 +23,12 @@ public class TFTPServer {
 				// receive read request
 				if (in instanceof TFTPread) {
 					System.out.println("Read Request from " + in.getAddress());
-					TFTPserverRRQ r = new TFTPserverRRQ((TFTPread) in);
+					TFTPserverRRQ r = new TFTPserverRRQ((TFTPread) in, shpResult.config());
 				}
 				// receive write request
 				else if (in instanceof TFTPwrite) {
 					System.out.println("Write Request from " + in.getAddress());
-					TFTPserverWRQ w = new TFTPserverWRQ((TFTPwrite) in);
+					TFTPserverWRQ w = new TFTPserverWRQ((TFTPwrite) in, shpResult.config());
 				}
 			}
 		} catch (SocketException e) {
