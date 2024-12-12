@@ -67,14 +67,6 @@ public class SHPClient {
         }
     }
 
-    private void checkAndAddMac(byte[] mac) {
-        String macString = bytesToHex(mac);
-        if (macs.contains(macString)) {
-            throw new RuntimeException("Mac already used: " + macString);
-        }
-        macs.add(macString);
-    }
-
     private SHPResult phase1() {
         try (Socket socket = new Socket(host, tcpPort)) {
             // initialize tcp connection
@@ -86,158 +78,17 @@ public class SHPClient {
             BufferedInputStream bufferedInput = new BufferedInputStream(input);
             BufferedOutputStream bufferedOutput = new BufferedOutputStream(output);
 
-            // send packet 1
-            System.out.println("[SHPClient] Sending packet 1");
-            SHPPacket msgOne = SHPPacketFactory.createTypeOnePacket(username);
-            bufferedOutput.write(msgOne.serialize());
-            bufferedOutput.flush();
-            System.out.println("[SHPClient] Sent packet 1");
+            sendMsgOne(bufferedOutput);
 
-            // receive packet 2
-            System.out.println("[SHPClient] Waiting for packet 2");
-            while (bufferedInput.available() == 0) {
-                Thread.sleep(100);
-            }
-            System.out.println("[SHPClient] Receiving packet 2");
-            byte[] receivedData = new byte[SHPPacket.headerLength()];
-            int bytesRead = bufferedInput.read(receivedData);
-            if (bytesRead != SHPPacket.headerLength()) {
-                throw new RuntimeException("Failed to read SHP packet 2 header");
-            }
-            System.out.println("[SHPClient] Received packet 1");
+            byte[] nonce3 = receiveMsgTwo(bufferedInput);
 
+            SendMsgThreeResult sendMsgThreeResult = sendMsgThree(bufferedOutput, nonce3);
 
-            MessageType packetType = SHPPacket.extractMessageType(receivedData);
-            if (packetType != MessageType.TWO) {
-                throw new RuntimeException("Expected SHP packet type 2, but received: " + packetType);
-            }
+            ReceiveMsgFourResult receiveMsgFourResult = receiveMsgFour(bufferedInput, sendMsgThreeResult.pbeKey(), sendMsgThreeResult.nonce4());
 
-            // handle packet 2
-            System.out.println("[SHPClient] Processing packet 2");
-            byte[] nonceData = new byte[48];
-            bytesRead = bufferedInput.read(nonceData);
-            if (bytesRead != 48) {
-                throw new RuntimeException("Failed to read nonce data");
-            }
-            ByteBuffer nonceBuffer = ByteBuffer.wrap(nonceData);
-            byte[] nonce1 = new byte[16];
-            nonceBuffer.get(nonce1);
-            checkAndAddNonce(nonce1);
-            byte[] nonce2 = new byte[16];
-            nonceBuffer.get(nonce2);
-            checkAndAddNonce(nonce2);
-            byte[] nonce3 = new byte[16];
-            nonceBuffer.get(nonce3);
-            checkAndAddNonce(nonce3);
+            sendMsgFive(bufferedOutput, receiveMsgFourResult.cryptoConfig(), receiveMsgFourResult.nonce5());
 
-            // create PBE key
-            byte[] passwordHash = generatePasswordHash(password, SALT);
-            Key pbeKey = generatePBEKey(bytesToHex(passwordHash).toCharArray());
-            byte[] nonce4 = generateNonce(16);
-            checkAndAddNonce(nonce4);
-            System.out.println("[SHPClient] Processed packet 2");
-
-
-            // send packet 3
-            System.out.println("[SHPClient] Sending packet 3");
-            SHPPacket msgThree = SHPPacketFactory.createTypeThreePacket(request, username, nonce3, nonce4, udpPort, pbeKey);
-            bufferedOutput.write(msgThree.serialize());
-            bufferedOutput.flush();
-            System.out.println("[SHPClient] Sent packet 3");
-
-            // receive packet 4
-            System.out.println("[SHPClient] Waiting for packet 4");
-            while (bufferedInput.available() == 0) {
-                Thread.sleep(100);
-            }
-            System.out.println("[SHPClient] Receiving packet 4");
-            receivedData = new byte[SHPPacket.headerLength()];
-            bytesRead = bufferedInput.read(receivedData);
-            if (bytesRead != SHPPacket.headerLength()) {
-                throw new RuntimeException("Failed to read SHP packet 4 header");
-            }
-            System.out.println("[SHPClient] Received packet 4");
-
-            packetType = SHPPacket.extractMessageType(receivedData);
-            if (packetType != MessageType.FOUR) {
-                throw new RuntimeException("Expected SHP packet type 4, but received: " + packetType);
-            }
-
-            // handle packet 4
-            System.out.println("[SHPClient] Processing packet 4");
-            // read encrypted data
-            byte[] lengthBytes = new byte[4];
-            bufferedInput.read(lengthBytes);
-            int encryptedDataLength = ByteBuffer.wrap(lengthBytes).getInt();
-            byte[] encryptedData = new byte[encryptedDataLength];
-            bytesRead = bufferedInput.read(encryptedData);
-            if (bytesRead != encryptedDataLength) {
-                throw new RuntimeException("Failed to read encrypted data in packet 4. Expected: " + encryptedDataLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            // read signature
-            bufferedInput.read(lengthBytes);
-            int signatureLength = ByteBuffer.wrap(lengthBytes).getInt();
-            byte[] signature = new byte[signatureLength];
-            bytesRead = bufferedInput.read(signature);
-            if (bytesRead != signatureLength) {
-                throw new RuntimeException("Failed to read signature in packet 4. Expected: " + signatureLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            // read mac
-            bufferedInput.read(lengthBytes);
-            int macLength = ByteBuffer.wrap(lengthBytes).getInt();
-            byte[] mac = new byte[macLength];
-            bytesRead = bufferedInput.read(mac);
-            if (bytesRead != macLength) {
-                throw new RuntimeException("Failed to read mac in packet 4. Expected: " + macLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            checkAndAddMac(mac);
-
-            // verify mac
-            if (!verifyMac(encryptedData, mac, pbeKey.getEncoded())) {
-                throw new SecurityException("Integrity verification of packet 4 failed");
-            }
-
-            // verify signature
-            if (!verifyECDSASignature(encryptedData, signature, ServerECCPubKey.getInstance().getPublic())) {
-                throw new SecurityException("Signature verification of packet 4 failed");
-            }
-
-            // decrypt data
-            byte[] decryptedData = ECIESDecrypt(encryptedData, ClientECCKeyPair.getInstance().getPrivate());
-            ByteBuffer dataBuffer = ByteBuffer.wrap(decryptedData);
-
-            // extract data
-            int requestConfirmationLength = dataBuffer.getInt();
-            byte[] requestConfirmationBytes = new byte[requestConfirmationLength];
-            dataBuffer.get(requestConfirmationBytes);
-            String requestConfirmation = new String(requestConfirmationBytes);
-            if (!requestConfirmation.equals(request)) {
-                throw new SecurityException("Request confirmation does not match request: request was '" +
-                        request + "' but confirmation was '" + requestConfirmation + "'");
-            }
-            byte[] nonce4Plus1 = new byte[16];
-            dataBuffer.get(nonce4Plus1);
-            verifyNonceChallenge(nonce4, nonce4Plus1);
-            byte[] nonce5 = new byte[16];
-            dataBuffer.get(nonce5);
-            checkAndAddNonce(nonce5);
-            byte[] cryptoConfigBytes = new byte[dataBuffer.remaining()];
-            dataBuffer.get(cryptoConfigBytes);
-            String cryptoConfigString = new String(cryptoConfigBytes);
-            DSTPConfig cryptoConfig = new DSTPConfig(new StringReader(cryptoConfigString));
-            CryptoProvider cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(cryptoConfig);
-            System.out.println("[SHPClient] Processed packet 4");
-
-            // send packet 5
-            System.out.println("[SHPClient] Sending packet 5");
-            SHPPacket msgFive = SHPPacketFactory.createTypeFivePacket(nonce5, cryptoProvider,
-                    hexToBytes(cryptoConfig.getSymmetric_key()), hexToBytes(cryptoConfig.getMackey()));
-            bufferedOutput.write(msgFive.serialize());
-            bufferedOutput.flush();
-            System.out.println("[SHPClient] Sent packet 5");
-
-            System.out.println("[SHPClient] Handshake successful");
-            return new SHPResult(cryptoConfig, host, udpPort, request, username);
+            return new SHPResult(receiveMsgFourResult.cryptoConfig(), host, udpPort, request, username);
         } catch (IOException e) {
             throw new RuntimeException("socket IO error");
         } catch (GeneralSecurityException e) {
@@ -258,190 +109,18 @@ public class SHPClient {
             BufferedInputStream bufferedInput = new BufferedInputStream(input);
             BufferedOutputStream bufferedOutput = new BufferedOutputStream(output);
 
-            // send packet 1
-            System.out.println("[SHPClient] Sending packet 1");
-            SHPPacket msgOne = SHPPacketFactory.createTypeOnePacket(username);
-            bufferedOutput.write(msgOne.serialize());
-            bufferedOutput.flush();
-            System.out.println("[SHPClient] Sent packet 1");
+            sendMsgOne(bufferedOutput);
 
-            // receive packet 2
-            System.out.println("[SHPClient] Waiting for packet 2");
-            while (bufferedInput.available() == 0) {
-                Thread.sleep(100);
-            }
-            System.out.println("[SHPClient] Receiving packet 2");
-            byte[] receivedData = new byte[SHPPacket.headerLength()];
-            int bytesRead = bufferedInput.read(receivedData);
-            if (bytesRead != SHPPacket.headerLength()) {
-                throw new RuntimeException("Failed to read SHP packet 2 header");
-            }
-            System.out.println("[SHPClient] Received packet 1");
+            byte[] nonce3 = receiveMsgTwo(bufferedInput);
 
+            SendMsgThreeResult sendMsgThreeResult = sendMsgThree2(bufferedOutput, nonce3);
 
-            MessageType packetType = SHPPacket.extractMessageType(receivedData);
-            if (packetType != MessageType.TWO) {
-                throw new RuntimeException("Expected SHP packet type 2, but received: " + packetType);
-            }
+            ReceiveMsgFourResult receiveMsgFourResult = receiveMsgFour2(bufferedInput, sendMsgThreeResult.pbeKey(), sendMsgThreeResult.nonce4(), sendMsgThreeResult.DHKeyPair());
 
-            // handle packet 2
-            System.out.println("[SHPClient] Processing packet 2");
-            byte[] nonceData = new byte[48];
-            bytesRead = bufferedInput.read(nonceData);
-            if (bytesRead != 48) {
-                throw new RuntimeException("Failed to read nonce data");
-            }
-            ByteBuffer nonceBuffer = ByteBuffer.wrap(nonceData);
-            byte[] nonce1 = new byte[16];
-            nonceBuffer.get(nonce1);
-            checkAndAddNonce(nonce1);
-            byte[] nonce2 = new byte[16];
-            nonceBuffer.get(nonce2);
-            checkAndAddNonce(nonce2);
-            byte[] nonce3 = new byte[16];
-            nonceBuffer.get(nonce3);
-            checkAndAddNonce(nonce3);
-            System.out.println("[SHPClient] Processed packet 2");
-
-            // create PBE key and nonce4 and DH Keypair
-            byte[] passwordHash = generatePasswordHash(password, SALT);
-            Key pbeKey = generatePBEKey(bytesToHex(passwordHash).toCharArray());
-            byte[] nonce4 = generateNonce(16);
-            checkAndAddNonce(nonce4);
-            KeyPair DHKeypair = generateDHKeyPair();
-
-            // send packet 32
-            System.out.println("[SHPClient] Sending packet 3");
-            SHPPacket msgThree = SHPPacketFactory.createTypeThreePacket2(request, username, nonce3, nonce4, udpPort, pbeKey, DHKeypair.getPublic().getEncoded());
-            bufferedOutput.write(msgThree.serialize());
-            bufferedOutput.flush();
-            System.out.println("[SHPClient] Sent packet 3");
-
-            // receive packet 42
-            System.out.println("[SHPClient] Waiting for packet 4");
-            while (bufferedInput.available() == 0) {
-                Thread.sleep(100);
-            }
-            System.out.println("[SHPClient] Receiving packet 4");
-            receivedData = new byte[SHPPacket.headerLength()];
-            bytesRead = bufferedInput.read(receivedData);
-            if (bytesRead != SHPPacket.headerLength()) {
-                throw new RuntimeException("Failed to read SHP packet 4 header");
-            }
-            System.out.println("[SHPClient] Received packet 4");
-
-            packetType = SHPPacket.extractMessageType(receivedData);
-            if (packetType != MessageType.FOUR2) {
-                throw new RuntimeException("Expected SHP packet type 4, but received: " + packetType);
-            }
-
-            // handle packet 42
-            System.out.println("[SHPClient] Processing packet 4");
-            // read encrypted data
-            byte[] lengthBytes = new byte[4];
-            bufferedInput.read(lengthBytes);
-            int encryptedDataLength = ByteBuffer.wrap(lengthBytes).getInt();
-            byte[] encryptedData = new byte[encryptedDataLength];
-            bytesRead = bufferedInput.read(encryptedData);
-            if (bytesRead != encryptedDataLength) {
-                throw new RuntimeException("Failed to read encrypted data in packet 4. Expected: " + encryptedDataLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            // ydh-server
-            byte[] ydhSLengthBytes = new byte[4];
-            bufferedInput.read(ydhSLengthBytes);
-            int ydhSLength = ByteBuffer.wrap(ydhSLengthBytes).getInt();
-            byte[] ydhS = new byte[ydhSLength];
-            bytesRead = bufferedInput.read(ydhS);
-            if (bytesRead != ydhSLength) {
-                throw new RuntimeException("Failed to read ydh-server in packet 4. Expected: " + ydhSLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            // read signature
-            bufferedInput.read(lengthBytes);
-            int signatureLength = ByteBuffer.wrap(lengthBytes).getInt();
-            byte[] signature = new byte[signatureLength];
-            bytesRead = bufferedInput.read(signature);
-            if (bytesRead != signatureLength) {
-                throw new RuntimeException("Failed to read signature in packet 4. Expected: " + signatureLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            // read mac
-            bufferedInput.read(lengthBytes);
-            int macLength = ByteBuffer.wrap(lengthBytes).getInt();
-            byte[] mac = new byte[macLength];
-            bytesRead = bufferedInput.read(mac);
-            if (bytesRead != macLength) {
-                throw new RuntimeException("Failed to read mac in packet 4. Expected: " + macLength + "Bytes. Actual: " + bytesRead + "Bytes");
-            }
-            checkAndAddMac(mac);
-
-            // verify mac
-            ByteBuffer toMac = ByteBuffer.allocate(encryptedData.length + ydhS.length + signatureLength);
-            toMac.put(encryptedData);
-            toMac.put(ydhS);
-            toMac.put(signature);
-            if (!verifyMac(toMac.array(), mac, pbeKey.getEncoded())) {
-                throw new SecurityException("Integrity verification of packet 4 failed");
-            }
-
-            // verify signature
-            ByteBuffer toSign = ByteBuffer.allocate(encryptedData.length + ydhS.length);
-            toSign.put(encryptedData);
-            toSign.put(ydhS);
-            if (!verifyECDSASignature(toSign.array(), signature, ServerECCPubKey.getInstance().getPublic())) {
-                throw new SecurityException("Signature verification of packet 4 failed");
-            }
-
-            // generate DH Sessionkey
-            byte[] DHSessionKey = doDHKeyAgreement(DHKeypair, reconstructDHPublicKeyFromBytes(ydhS));
-
-            // decrypt data
-            byte[] decryptedData = ECIESDecrypt(encryptedData, ClientECCKeyPair.getInstance().getPrivate());
-            ByteBuffer dataBuffer = ByteBuffer.wrap(decryptedData);
-
-            // extract data
-            int requestConfirmationLength = dataBuffer.getInt();
-            byte[] requestConfirmationBytes = new byte[requestConfirmationLength];
-            dataBuffer.get(requestConfirmationBytes);
-            String requestConfirmation = new String(requestConfirmationBytes);
-            if (!requestConfirmation.equals(request)) {
-                throw new SecurityException("Request confirmation does not match request: request was '" +
-                        request + "' but confirmation was '" + requestConfirmation + "'");
-            }
-            byte[] nonce4Plus1 = new byte[16];
-            dataBuffer.get(nonce4Plus1);
-            verifyNonceChallenge(nonce4, nonce4Plus1);
-            byte[] nonce5 = new byte[16];
-            dataBuffer.get(nonce5);
-            checkAndAddNonce(nonce5);
-            byte[] cryptoConfigBytes = new byte[dataBuffer.remaining()];
-            dataBuffer.get(cryptoConfigBytes);
-            String cryptoConfigString = new String(cryptoConfigBytes);
-            DSTPConfig cryptoConfig = new DSTPConfig(new StringReader(cryptoConfigString));
-
-            // generate and set DH derived keys and set them in the config
-            SecretKey symmetricKey = deriveKeyPBKDF2(bytesToHex(DHSessionKey), getBaseAlgorithm(cryptoConfig.getConfidentiality()));
-            cryptoConfig.setSymmetric_key(bytesToHex(symmetricKey.getEncoded()));
-            cryptoConfig.setSymmetric_key_size(String.valueOf(symmetricKey.getEncoded().length * 8));
-            SecretKey macKey = null;
-            if (cryptoConfig.getIntegrity().equals(MAC)) {
-                macKey = deriveKeyPBKDF2(bytesToHex(DHSessionKey), getBaseAlgorithm(cryptoConfig.getMac()));
-            }
-            if (macKey != null) {
-                cryptoConfig.setMackey(bytesToHex(macKey.getEncoded()));
-                cryptoConfig.setMackey_size(String.valueOf(macKey.getEncoded().length * 8));
-            }
-            CryptoProvider cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(cryptoConfig);
-            System.out.println("[SHPClient] Processed packet 4");
-
-            // send packet 5
-            System.out.println("[SHPClient] Sending packet 5");
-            SHPPacket msgFive = SHPPacketFactory.createTypeFivePacket(nonce5, cryptoProvider,
-                    hexToBytes(cryptoConfig.getSymmetric_key()), hexToBytes(cryptoConfig.getMackey()));
-            bufferedOutput.write(msgFive.serialize());
-            bufferedOutput.flush();
-            System.out.println("[SHPClient] Sent packet 5");
+            sendMsgFive(bufferedOutput, receiveMsgFourResult.cryptoConfig(), receiveMsgFourResult.nonce5());
 
             System.out.println("[SHPClient] Handshake successful");
-            return new SHPResult(cryptoConfig, host, udpPort, request, username);
+            return new SHPResult(receiveMsgFourResult.cryptoConfig(), host, udpPort, request, username);
         } catch (IOException e) {
             throw new RuntimeException("socket IO error");
         } catch (GeneralSecurityException e) {
@@ -449,6 +128,316 @@ public class SHPClient {
         } catch (InterruptedException e) {
             throw new RuntimeException("thread interrupted while sleeping");
         }
+    }
+
+    private void checkAndAddMac(byte[] mac) {
+        String macString = bytesToHex(mac);
+        if (macs.contains(macString)) {
+            throw new RuntimeException("Mac already used: " + macString);
+        }
+        macs.add(macString);
+    }
+
+    private void sendMsgOne(BufferedOutputStream bufferedOutput) throws IOException {
+        // send packet 1
+        System.out.println("[SHPClient] Sending packet 1");
+        SHPPacket msgOne = SHPPacketFactory.createTypeOnePacket(username);
+        bufferedOutput.write(msgOne.serialize());
+        bufferedOutput.flush();
+        System.out.println("[SHPClient] Sent packet 1");
+    }
+
+    private byte[] receiveMsgTwo(BufferedInputStream bufferedInput) throws IOException, InterruptedException {
+        // receive packet 2
+        System.out.println("[SHPClient] Waiting for packet 2");
+        while (bufferedInput.available() == 0) {
+            Thread.sleep(100);
+        }
+        System.out.println("[SHPClient] Receiving packet 2");
+        byte[] receivedData = new byte[SHPPacket.headerLength()];
+        int bytesRead = bufferedInput.read(receivedData);
+        if (bytesRead != SHPPacket.headerLength()) {
+            throw new RuntimeException("Failed to read SHP packet 2 header");
+        }
+        System.out.println("[SHPClient] Received packet 2");
+
+        MessageType packetType = SHPPacket.extractMessageType(receivedData);
+        if (packetType != MessageType.TWO) {
+            throw new RuntimeException("Expected SHP packet type 2, but received: " + packetType);
+        }
+
+        // handle packet 2
+        System.out.println("[SHPClient] Processing packet 2");
+        byte[] nonceData = new byte[48];
+        bytesRead = bufferedInput.read(nonceData);
+        if (bytesRead != 48) {
+            throw new RuntimeException("Failed to read nonce data");
+        }
+        ByteBuffer nonceBuffer = ByteBuffer.wrap(nonceData);
+        byte[] nonce1 = new byte[16];
+        nonceBuffer.get(nonce1);
+        checkAndAddNonce(nonce1);
+        byte[] nonce2 = new byte[16];
+        nonceBuffer.get(nonce2);
+        checkAndAddNonce(nonce2);
+        byte[] nonce3 = new byte[16];
+        nonceBuffer.get(nonce3);
+        checkAndAddNonce(nonce3);
+
+        return nonce3;
+    }
+
+    private SendMsgThreeResult sendMsgThree(BufferedOutputStream bufferedOutput, byte[] nonce3) throws IOException, GeneralSecurityException {
+        // create PBE key
+        byte[] passwordHash = generatePasswordHash(password, SALT);
+        Key pbeKey = generatePBEKey(bytesToHex(passwordHash).toCharArray());
+        byte[] nonce4 = generateNonce(16);
+        checkAndAddNonce(nonce4);
+        System.out.println("[SHPClient] Processed packet 2");
+
+        // send packet 3
+        System.out.println("[SHPClient] Sending packet 3");
+        SHPPacket msgThree = SHPPacketFactory.createTypeThreePacket(request, username, nonce3, nonce4, udpPort, pbeKey);
+        bufferedOutput.write(msgThree.serialize());
+        bufferedOutput.flush();
+        System.out.println("[SHPClient] Sent packet 3");
+
+        return new SendMsgThreeResult(pbeKey, nonce4, null);
+    }
+
+    private SendMsgThreeResult sendMsgThree2(BufferedOutputStream bufferedOutput, byte[] nonce3) throws IOException, GeneralSecurityException {
+        // create PBE key and nonce4 and DH Keypair
+        byte[] passwordHash = generatePasswordHash(password, SALT);
+        Key pbeKey = generatePBEKey(bytesToHex(passwordHash).toCharArray());
+        byte[] nonce4 = generateNonce(16);
+        checkAndAddNonce(nonce4);
+        KeyPair DHKeypair = generateDHKeyPair();
+
+        // send packet 32
+        System.out.println("[SHPClient] Sending packet 3");
+        SHPPacket msgThree = SHPPacketFactory.createTypeThreePacket2(request, username, nonce3, nonce4, udpPort, pbeKey, DHKeypair.getPublic().getEncoded());
+        bufferedOutput.write(msgThree.serialize());
+        bufferedOutput.flush();
+        System.out.println("[SHPClient] Sent packet 3");
+
+        return new SendMsgThreeResult(pbeKey, nonce4, DHKeypair);
+    }
+
+    private ReceiveMsgFourResult receiveMsgFour(BufferedInputStream bufferedInput, Key pbeKey, byte[] nonce4) throws IOException, InterruptedException, GeneralSecurityException {
+        // receive packet 4
+        System.out.println("[SHPClient] Waiting for packet 4");
+        while (bufferedInput.available() == 0) {
+            Thread.sleep(100);
+        }
+        System.out.println("[SHPClient] Receiving packet 4");
+        byte[] receivedData = new byte[SHPPacket.headerLength()];
+        int bytesRead = bufferedInput.read(receivedData);
+        if (bytesRead != SHPPacket.headerLength()) {
+            throw new RuntimeException("Failed to read SHP packet 4 header");
+        }
+        System.out.println("[SHPClient] Received packet 4");
+
+        MessageType packetType = SHPPacket.extractMessageType(receivedData);
+        if (packetType != MessageType.FOUR) {
+            throw new RuntimeException("Expected SHP packet type 4, but received: " + packetType);
+        }
+
+        // handle packet 4
+        System.out.println("[SHPClient] Processing packet 4");
+        // read encrypted data
+        byte[] lengthBytes = new byte[4];
+        bufferedInput.read(lengthBytes);
+        int encryptedDataLength = ByteBuffer.wrap(lengthBytes).getInt();
+        byte[] encryptedData = new byte[encryptedDataLength];
+        bytesRead = bufferedInput.read(encryptedData);
+        if (bytesRead != encryptedDataLength) {
+            throw new RuntimeException("Failed to read encrypted data in packet 4. Expected: " + encryptedDataLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        // read signature
+        bufferedInput.read(lengthBytes);
+        int signatureLength = ByteBuffer.wrap(lengthBytes).getInt();
+        byte[] signature = new byte[signatureLength];
+        bytesRead = bufferedInput.read(signature);
+        if (bytesRead != signatureLength) {
+            throw new RuntimeException("Failed to read signature in packet 4. Expected: " + signatureLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        // read mac
+        bufferedInput.read(lengthBytes);
+        int macLength = ByteBuffer.wrap(lengthBytes).getInt();
+        byte[] mac = new byte[macLength];
+        bytesRead = bufferedInput.read(mac);
+        if (bytesRead != macLength) {
+            throw new RuntimeException("Failed to read mac in packet 4. Expected: " + macLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        checkAndAddMac(mac);
+
+        // verify mac
+        if (!verifyMac(encryptedData, mac, pbeKey.getEncoded())) {
+            throw new SecurityException("Integrity verification of packet 4 failed");
+        }
+
+        // verify signature
+        if (!verifyECDSASignature(encryptedData, signature, ServerECCPubKey.getInstance().getPublic())) {
+            throw new SecurityException("Signature verification of packet 4 failed");
+        }
+
+        // decrypt data
+        byte[] decryptedData = ECIESDecrypt(encryptedData, ClientECCKeyPair.getInstance().getPrivate());
+        ByteBuffer dataBuffer = ByteBuffer.wrap(decryptedData);
+
+        // extract data
+        int requestConfirmationLength = dataBuffer.getInt();
+        byte[] requestConfirmationBytes = new byte[requestConfirmationLength];
+        dataBuffer.get(requestConfirmationBytes);
+        String requestConfirmation = new String(requestConfirmationBytes);
+        if (!requestConfirmation.equals(request)) {
+            throw new SecurityException("Request confirmation does not match request: request was '" +
+                    request + "' but confirmation was '" + requestConfirmation + "'");
+        }
+        byte[] nonce4Plus1 = new byte[16];
+        dataBuffer.get(nonce4Plus1);
+        verifyNonceChallenge(nonce4, nonce4Plus1);
+        byte[] nonce5 = new byte[16];
+        dataBuffer.get(nonce5);
+        checkAndAddNonce(nonce5);
+        byte[] cryptoConfigBytes = new byte[dataBuffer.remaining()];
+        dataBuffer.get(cryptoConfigBytes);
+        String cryptoConfigString = new String(cryptoConfigBytes);
+        DSTPConfig cryptoConfig = new DSTPConfig(new StringReader(cryptoConfigString));
+        System.out.println("[SHPClient] Processed packet 4");
+
+        return new ReceiveMsgFourResult(cryptoConfig, nonce5);
+    }
+
+    private ReceiveMsgFourResult receiveMsgFour2(BufferedInputStream bufferedInput, Key pbeKey, byte[] nonce4, KeyPair DHKeypair) throws IOException, InterruptedException, GeneralSecurityException {
+        // receive packet 42
+        System.out.println("[SHPClient] Waiting for packet 4");
+        while (bufferedInput.available() == 0) {
+            Thread.sleep(100);
+        }
+        System.out.println("[SHPClient] Receiving packet 4");
+        byte[] receivedData = new byte[SHPPacket.headerLength()];
+        int bytesRead = bufferedInput.read(receivedData);
+        if (bytesRead != SHPPacket.headerLength()) {
+            throw new RuntimeException("Failed to read SHP packet 4 header");
+        }
+        System.out.println("[SHPClient] Received packet 4");
+
+        MessageType packetType = SHPPacket.extractMessageType(receivedData);
+        if (packetType != MessageType.FOUR2) {
+            throw new RuntimeException("Expected SHP packet type 4, but received: " + packetType);
+        }
+
+        // handle packet 42
+        System.out.println("[SHPClient] Processing packet 4");
+        // read encrypted data
+        byte[] lengthBytes = new byte[4];
+        bufferedInput.read(lengthBytes);
+        int encryptedDataLength = ByteBuffer.wrap(lengthBytes).getInt();
+        byte[] encryptedData = new byte[encryptedDataLength];
+        bytesRead = bufferedInput.read(encryptedData);
+        if (bytesRead != encryptedDataLength) {
+            throw new RuntimeException("Failed to read encrypted data in packet 4. Expected: " + encryptedDataLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        // ydh-server
+        byte[] ydhSLengthBytes = new byte[4];
+        bufferedInput.read(ydhSLengthBytes);
+        int ydhSLength = ByteBuffer.wrap(ydhSLengthBytes).getInt();
+        byte[] ydhS = new byte[ydhSLength];
+        bytesRead = bufferedInput.read(ydhS);
+        if (bytesRead != ydhSLength) {
+            throw new RuntimeException("Failed to read ydh-server in packet 4. Expected: " + ydhSLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        // read signature
+        bufferedInput.read(lengthBytes);
+        int signatureLength = ByteBuffer.wrap(lengthBytes).getInt();
+        byte[] signature = new byte[signatureLength];
+        bytesRead = bufferedInput.read(signature);
+        if (bytesRead != signatureLength) {
+            throw new RuntimeException("Failed to read signature in packet 4. Expected: " + signatureLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        // read mac
+        bufferedInput.read(lengthBytes);
+        int macLength = ByteBuffer.wrap(lengthBytes).getInt();
+        byte[] mac = new byte[macLength];
+        bytesRead = bufferedInput.read(mac);
+        if (bytesRead != macLength) {
+            throw new RuntimeException("Failed to read mac in packet 4. Expected: " + macLength + "Bytes. Actual: " + bytesRead + "Bytes");
+        }
+        checkAndAddMac(mac);
+
+        // verify mac
+        ByteBuffer toMac = ByteBuffer.allocate(encryptedData.length + ydhS.length + signatureLength);
+        toMac.put(encryptedData);
+        toMac.put(ydhS);
+        toMac.put(signature);
+        if (!verifyMac(toMac.array(), mac, pbeKey.getEncoded())) {
+            throw new SecurityException("Integrity verification of packet 4 failed");
+        }
+
+        // verify signature
+        ByteBuffer toSign = ByteBuffer.allocate(encryptedData.length + ydhS.length);
+        toSign.put(encryptedData);
+        toSign.put(ydhS);
+        if (!verifyECDSASignature(toSign.array(), signature, ServerECCPubKey.getInstance().getPublic())) {
+            throw new SecurityException("Signature verification of packet 4 failed");
+        }
+
+        // generate DH Sessionkey
+        byte[] DHSessionKey = doDHKeyAgreement(DHKeypair, reconstructDHPublicKeyFromBytes(ydhS));
+
+        // decrypt data
+        byte[] decryptedData = ECIESDecrypt(encryptedData, ClientECCKeyPair.getInstance().getPrivate());
+        ByteBuffer dataBuffer = ByteBuffer.wrap(decryptedData);
+
+        // extract data
+        int requestConfirmationLength = dataBuffer.getInt();
+        byte[] requestConfirmationBytes = new byte[requestConfirmationLength];
+        dataBuffer.get(requestConfirmationBytes);
+        String requestConfirmation = new String(requestConfirmationBytes);
+        if (!requestConfirmation.equals(request)) {
+            throw new SecurityException("Request confirmation does not match request: request was '" +
+                    request + "' but confirmation was '" + requestConfirmation + "'");
+        }
+        byte[] nonce4Plus1 = new byte[16];
+        dataBuffer.get(nonce4Plus1);
+        verifyNonceChallenge(nonce4, nonce4Plus1);
+        byte[] nonce5 = new byte[16];
+        dataBuffer.get(nonce5);
+        checkAndAddNonce(nonce5);
+        byte[] cryptoConfigBytes = new byte[dataBuffer.remaining()];
+        dataBuffer.get(cryptoConfigBytes);
+        String cryptoConfigString = new String(cryptoConfigBytes);
+        DSTPConfig cryptoConfig = new DSTPConfig(new StringReader(cryptoConfigString));
+
+        // generate and set DH derived keys and set them in the config
+        SecretKey symmetricKey = deriveKeyPBKDF2(bytesToHex(DHSessionKey), getBaseAlgorithm(cryptoConfig.getConfidentiality()));
+        cryptoConfig.setSymmetric_key(bytesToHex(symmetricKey.getEncoded()));
+        cryptoConfig.setSymmetric_key_size(String.valueOf(symmetricKey.getEncoded().length * 8));
+        SecretKey macKey = null;
+        if (cryptoConfig.getIntegrity().equals(MAC)) {
+            macKey = deriveKeyPBKDF2(bytesToHex(DHSessionKey), getBaseAlgorithm(cryptoConfig.getMac()));
+        }
+        if (macKey != null) {
+            cryptoConfig.setMackey(bytesToHex(macKey.getEncoded()));
+            cryptoConfig.setMackey_size(String.valueOf(macKey.getEncoded().length * 8));
+        }
+        System.out.println("[SHPClient] Processed packet 4");
+
+        return new ReceiveMsgFourResult(cryptoConfig, nonce5);
+    }
+
+    private void sendMsgFive(BufferedOutputStream bufferedOutput, DSTPConfig cryptoConfig, byte[] nonce5) throws IOException {
+        // send packet 5
+        System.out.println("[SHPClient] Sending packet 5");
+        CryptoProvider cryptoProvider = CryptoProviderFactory.createBouncyCastleProvider(cryptoConfig);
+        SHPPacket msgFive = SHPPacketFactory.createTypeFivePacket(nonce5, cryptoProvider,
+                hexToBytes(cryptoConfig.getSymmetric_key()), hexToBytes(cryptoConfig.getMackey()));
+        bufferedOutput.write(msgFive.serialize());
+        bufferedOutput.flush();
+        System.out.println("[SHPClient] Sent packet 5");
+
+        System.out.println("[SHPClient] Handshake successful");
     }
 
     private void checkAndAddNonce(byte[] nonce) {
