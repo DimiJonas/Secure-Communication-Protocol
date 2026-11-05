@@ -3,6 +3,8 @@ package util;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import shp.client.ClientECCKeyPair;
+import shp.server.ServerECCKeyPair;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.DHParameterSpec;
@@ -268,5 +270,20 @@ class CryptoUtilsTest {
         assertThrows(GeneralSecurityException.class, () ->
                 doDHKeyAgreement(keyPair, invalidPublicKey)
         );
+    }
+
+    @Test
+    void printKeysizes() throws GeneralSecurityException {
+        System.out.println(ClientECCKeyPair.getInstance().getPrivate().getEncoded().length * 8);
+        System.out.println(ClientECCKeyPair.getInstance().getPrivate().getFormat());
+        System.out.println(ClientECCKeyPair.getInstance().getPublic().getEncoded().length * 8);
+        System.out.println(ClientECCKeyPair.getInstance().getPublic().getFormat());
+        System.out.println(ServerECCKeyPair.getInstance().getPrivate().getEncoded().length * 8);
+        System.out.println(ServerECCKeyPair.getInstance().getPublic().getEncoded().length * 8);
+        System.out.println(DEFAULT_P.bitLength());
+        System.out.println(DEFAULT_G.bitLength());
+        KeyPair DHkeypair = generateDHKeyPair();
+        System.out.println(DHkeypair.getPrivate().getEncoded().length * 8);
+        System.out.println(DHkeypair.getPublic().getEncoded().length * 8);
     }
 }

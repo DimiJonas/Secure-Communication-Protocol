@@ -35,7 +35,8 @@ java -cp target/PA2-1.0-jar-with-dependencies.jar applications.StreamingService.
 or with shp:
 java -cp target/PA2-1.0-jar-with-dependencies.jar applications.StreamingService.hjStreamServer.hjStreamServer
 java
-hjUDPProxy arguments:
+hjUDPProxy arguments:java -cp target/PA2-1.0-jar-with-dependencies.jar applications.StreamingService.hjStreamServer.hjStreamServer
+
 ----------------------
 
 Must input the rquired arguments for the Proxy that wil receive
